@@ -117,9 +117,17 @@ canvas#gameCanvas.active{display:block;pointer-events:auto}
 @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}
 
 /* Music Control */
-#music-btn{position:fixed;top:20px;right:20px;z-index:100;background:rgba(0,0,0,.7);border:2px solid rgba(225,29,72,.5);color:#ff6b8a;width:50px;height:50px;border-radius:50%;font-size:1.5rem;cursor:pointer;transition:all .3s;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(10px)}
-#music-btn:hover{background:rgba(0,0,0,.9);border-color:#ff6b8a;box-shadow:0 0 20px rgba(225,29,72,.5)}
+#music-controls{position:fixed;top:20px;right:20px;z-index:100;display:flex;align-items:center;gap:1rem;background:rgba(0,0,0,.7);border:2px solid rgba(225,29,72,.5);border-radius:50px;padding:0.5rem 1.5rem 0.5rem 0.5rem;backdrop-filter:blur(10px);transition:all .3s}
+#music-controls:hover{background:rgba(0,0,0,.9);border-color:#ff6b8a}
+#music-btn{background:none;border:none;color:#ff6b8a;width:50px;height:50px;border-radius:50%;font-size:1.5rem;cursor:pointer;transition:all .3s;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+#music-btn:hover{box-shadow:0 0 20px rgba(225,29,72,.5)}
 #music-btn.muted{opacity:.5}
+#volume-slider{width:120px;height:6px;-webkit-appearance:none;appearance:none;background:rgba(255,255,255,.2);border-radius:5px;outline:none;cursor:pointer}
+#volume-slider::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:16px;height:16px;border-radius:50%;background:#ff6b8a;cursor:pointer;box-shadow:0 0 10px rgba(255,107,138,.5);transition:all .2s}
+#volume-slider::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:#ff6b8a;cursor:pointer;border:none;box-shadow:0 0 10px rgba(255,107,138,.5);transition:all .2s}
+#volume-slider::-webkit-slider-thumb:hover{box-shadow:0 0 15px rgba(255,107,138,.8);transform:scale(1.1)}
+#volume-slider::-moz-range-thumb:hover{box-shadow:0 0 15px rgba(255,107,138,.8);transform:scale(1.1)}
+#volume-label{color:#ff6b8a;font-size:0.9rem;min-width:35px;text-align:center;font-weight:600;user-select:none}
 
 @media(max-width:600px){
   .memory-grid{grid-template-columns:repeat(4,55px);gap:8px}
@@ -129,13 +137,20 @@ canvas#gameCanvas.active{display:block;pointer-events:auto}
   #video-overlay{width:260px}
   #video-overlay.active{right:10px}
   #video-overlay.left-side.active{left:10px}
-  #music-btn{top:10px;right:10px;width:45px;height:45px;font-size:1.2rem}
+  #music-controls{top:10px;right:10px;padding:0.4rem 1rem 0.4rem 0.4rem;gap:0.8rem}
+  #music-btn{width:40px;height:40px;font-size:1.1rem}
+  #volume-slider{width:80px}
+  #volume-label{font-size:0.85rem;min-width:30px}
 }
 </style>
 </head>
 <body>
 <audio id="bgMusic" loop preload="auto"></audio>
-<button id="music-btn" onclick="toggleMusic()" title="Toggle Music">🎵</button>
+<div id="music-controls">
+  <button id="music-btn" onclick="toggleMusic()" title="Toggle Music">🎵</button>
+  <input type="range" id="volume-slider" min="0" max="100" value="40" title="Volume">
+  <span id="volume-label">40%</span>
+</div>
 <canvas id="scene3d"></canvas>
 <canvas id="gameCanvas"></canvas>
 <div id="warp-overlay"></div>
@@ -546,6 +561,14 @@ function toggleMusic(){
     btn.classList.remove('muted');
     btn.textContent='🎵';
   }
+}
+
+function changeVolume(val){
+  const bgMusic=document.getElementById('bgMusic');
+  const label=document.getElementById('volume-label');
+  const volume=parseInt(val);
+  bgMusic.volume=volume/100;
+  label.textContent=volume+'%';
 }
 
 let breathingIndex=0;
@@ -1482,6 +1505,17 @@ window.addEventListener('touchmove',(e)=>{
   warpSteer.targetX=((t.clientX/window.innerWidth)-0.5)*2;
   warpSteer.targetY=-((t.clientY/window.innerHeight)-0.5)*2;
 },{passive:true});
+
+// Volume slider event listeners
+const volumeSlider=document.getElementById('volume-slider');
+if(volumeSlider){
+  volumeSlider.addEventListener('input',(e)=>{
+    changeVolume(e.target.value);
+  });
+  volumeSlider.addEventListener('change',(e)=>{
+    changeVolume(e.target.value);
+  });
+}
 </script>
 </body>
 </html>
