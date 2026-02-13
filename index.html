@@ -147,6 +147,53 @@
       z-index: 2;
     }
 
+    /* Cat grab animation */
+    .cat-thief {
+      position: fixed;
+      z-index: 100;
+      width: 120px;
+      height: auto;
+      pointer-events: none;
+      transition: none;
+      filter: drop-shadow(0 4px 16px rgba(0,0,0,.5));
+    }
+    .cat-thief.running {
+      animation: catRunIn .45s cubic-bezier(.22,1,.36,1) forwards;
+    }
+    .cat-thief.grabbing {
+      animation: catGrab .25s ease forwards;
+    }
+    .cat-thief.escaping {
+      animation: catEscape .6s cubic-bezier(.55,.06,.68,.19) forwards;
+    }
+    @keyframes catRunIn {
+      from { transform: translateX(120px) rotate(12deg) scale(.7); opacity:0; }
+      to   { transform: translateX(0) rotate(0deg) scale(1); opacity:1; }
+    }
+    @keyframes catGrab {
+      0%   { transform: scale(1) rotate(0deg); }
+      50%  { transform: scale(1.15) rotate(-5deg); }
+      100% { transform: scale(1.05) rotate(3deg); }
+    }
+    @keyframes catEscape {
+      0%   { transform: translateX(0) translateY(0) rotate(3deg); opacity:1; }
+      100% { transform: translateX(-110vw) translateY(-30px) rotate(-20deg); opacity:0; }
+    }
+    #noBtn.grabbed {
+      animation: btnShrinkGrab .3s ease forwards;
+    }
+    #noBtn.carried {
+      animation: btnCarried .6s cubic-bezier(.55,.06,.68,.19) forwards;
+    }
+    @keyframes btnShrinkGrab {
+      0%   { transform: scale(1); }
+      100% { transform: scale(.7) rotate(-8deg); }
+    }
+    @keyframes btnCarried {
+      0%   { transform: scale(.7) rotate(-8deg); opacity:1; }
+      100% { transform: translateX(-110vw) scale(.4) rotate(-30deg); opacity:0; }
+    }
+
     .message {
       margin-top: 22px;
       font-size: 18px;
@@ -179,7 +226,7 @@
 
   <main class="card">
     <h1>Will you be my Valentine?</h1>
-    <p>You make my days brighter, my life happier, and feel complete. So… would you make me the happiest person and say yes?</p>
+    <p>You make my days brighter, my coffee sweeter, and my heart louder. So… would you make me the happiest person and say yes?</p>
 
     <div class="buttons">
       <button id="yesBtn" type="button">Yes 💖</button>
@@ -195,10 +242,10 @@
     const message = document.getElementById("message");
 
     const messages = [
-      "Yay! I knew it! 💕",
-      "Best. Valentine. Ever! 💘",
-      "You just made my heart do a happy dance 💃",
-      "Okay, now I’m blushing 🙈",
+      "사랑해! 내 인생 최고의 발렌타인이야! 💕",
+      "사랑해! 내 인생 최고의 발렌타인이야! 💕",
+      "사랑해! 내 인생 최고의 발렌타인이야! 💕",
+      "사랑해! 내 인생 최고의 발렌타인이야! 💕",
     ];
 
     const noMessages = [
@@ -221,22 +268,42 @@
       }, 600);
     });
 
-    noBtn.addEventListener("click", () => {
-      noClicks += 1;
-      const pick = noMessages[noClicks % noMessages.length];
-      message.textContent = pick;
+    // Cat steals the No button on page load
+    window.addEventListener("load", () => {
+      setTimeout(() => {
+        const rect = noBtn.getBoundingClientRect();
 
-      const scale = Math.min(1 + noClicks * 0.25, 4.2);
-      yesBtn.style.setProperty("--yes-scale", scale);
+        const cat = document.createElement("img");
+        cat.src = "lucjusz.png";
+        cat.className = "cat-thief";
+        cat.style.left = (rect.right + 10) + "px";
+        cat.style.top = (rect.top + rect.height / 2 - 60) + "px";
+        document.body.appendChild(cat);
 
-      if (scale >= 3.6) {
-        noBtn.style.opacity = "0";
-        noBtn.style.pointerEvents = "none";
-      }
+        // Phase 1: Cat runs in
+        requestAnimationFrame(() => cat.classList.add("running"));
 
-      // No movement; only update message and grow Yes.
+        setTimeout(() => {
+          // Phase 2: Cat grabs
+          cat.classList.remove("running");
+          cat.classList.add("grabbing");
+          noBtn.classList.add("grabbed");
+        }, 450);
+
+        setTimeout(() => {
+          // Phase 3: Cat escapes with button
+          cat.classList.remove("grabbing");
+          cat.classList.add("escaping");
+          noBtn.classList.remove("grabbed");
+          noBtn.classList.add("carried");
+        }, 700);
+
+        setTimeout(() => {
+          cat.remove();
+          noBtn.style.display = "none";
+        }, 1350);
+      }, 1200); // wait a moment after page loads
     });
   </script>
 </body>
 </html>
-

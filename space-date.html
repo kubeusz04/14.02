@@ -1,0 +1,1487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Cosmic Date 🚀 — For 윤아</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#000;overflow:hidden;font-family:'Segoe UI',Tahoma,sans-serif;color:#fff;user-select:none}
+canvas#scene3d{position:fixed;inset:0;z-index:0}
+canvas#gameCanvas{position:fixed;inset:0;z-index:10;pointer-events:none;display:none}
+canvas#gameCanvas.active{display:block;pointer-events:auto}
+
+/* UI Overlays */
+.overlay{position:fixed;inset:0;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:2rem;transition:opacity .8s,visibility .8s}
+.overlay.hidden{opacity:0;visibility:hidden;pointer-events:none}
+
+/* Title Screen */
+#title-screen{background:radial-gradient(ellipse at center,rgba(40,5,15,.95),rgba(0,0,0,.98))}
+#title-screen h1{font-size:clamp(2rem,6vw,4rem);margin-bottom:.5rem;background:linear-gradient(135deg,#ff6b8a,#e11d48,#ff8fa3);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+#title-screen .sub{font-size:1.2rem;color:#fb7185;margin-bottom:2rem}
+#title-screen .rocket-emoji{font-size:80px;animation:rocketBounce 2s ease-in-out infinite}
+@keyframes rocketBounce{0%,100%{transform:translateY(0) rotate(-20deg)}50%{transform:translateY(-20px) rotate(-20deg)}}
+.btn{background:linear-gradient(135deg,#e11d48,#be123c);border:none;padding:1rem 3rem;font-size:1.1rem;font-weight:700;color:#fff;border-radius:50px;cursor:pointer;transition:transform .3s,box-shadow .3s;box-shadow:0 5px 30px rgba(225,29,72,.4)}
+.btn:hover{transform:translateY(-3px) scale(1.05);box-shadow:0 10px 40px rgba(225,29,72,.6)}
+
+/* Dialog Box */
+#dialog-box{background:rgba(0,0,0,.75);backdrop-filter:blur(20px);z-index:30;padding:2rem}
+#dialog-box .dialog-inner{max-width:60vw;width:100%;max-height:85vh;border:1px solid rgba(225,29,72,.3);border-radius:20px;padding:2rem;background:rgba(30,5,15,.8);overflow-y:auto;display:flex;flex-direction:column}
+#dialog-box .planet-emoji{font-size:60px;margin-bottom:1rem}
+#dialog-box h2{font-size:1.6rem;color:#fb7185;margin-bottom:.5rem}
+#dialog-box .story{font-size:1.05rem;line-height:1.9;color:#fecdd3;margin-bottom:1.5rem;animation:storyFadeIn .6s ease;word-wrap:break-word;overflow-wrap:break-word}
+#dialog-box .story em{color:#ff6b8a;font-style:normal;font-weight:600}
+@keyframes storyFadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.cutscene-pages{display:flex;gap:6px;justify-content:center;margin-bottom:1rem}
+.cutscene-pages .page-dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.2);transition:all .4s}
+.cutscene-pages .page-dot.active{background:#ff6b8a;box-shadow:0 0 8px rgba(255,107,138,.6)}
+.cutscene-pages .page-dot.done{background:#e11d48}
+.scene-label{font-size:.8rem;color:#fb7185;text-transform:uppercase;letter-spacing:2px;margin-bottom:.6rem;opacity:.7}
+
+/* Game HUD */
+#game-hud{position:fixed;top:1rem;left:50%;transform:translateX(-50%);z-index:35;background:rgba(0,0,0,.6);backdrop-filter:blur(10px);border:1px solid rgba(225,29,72,.3);border-radius:12px;padding:.7rem 1.5rem;display:none;gap:1.5rem;align-items:center;font-size:.95rem}
+#game-hud.active{display:flex}
+#game-hud .hud-label{color:#fda4af}
+#game-hud .hud-val{color:#ff6b8a;font-weight:700}
+#hud-lives{font-size:1.2rem;letter-spacing:2px;transition:all .3s}
+#hud-lives .heart-lost{opacity:.2;filter:grayscale(1)}
+
+/* Lucjusz rescue overlay */
+#lucjusz-rescue{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.85);backdrop-filter:blur(15px);display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:2rem}
+#lucjusz-rescue.active{display:flex}
+#lucjusz-rescue img{width:200px;height:auto;border-radius:20px;margin-bottom:1.5rem;box-shadow:0 0 40px rgba(255,107,138,.4);animation:lucjuszBounce 1s ease}
+#lucjusz-rescue h2{color:#fb7185;font-size:1.6rem;margin-bottom:.5rem}
+#lucjusz-rescue p{color:#fecdd3;font-size:1.1rem;line-height:1.8;max-width:450px}
+@keyframes lucjuszBounce{0%{transform:scale(0) rotate(-10deg);opacity:0}50%{transform:scale(1.1) rotate(5deg);opacity:1}100%{transform:scale(1) rotate(0deg);opacity:1}}
+
+/* Game Instructions */
+#game-instructions{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:35;background:rgba(20,5,10,.9);backdrop-filter:blur(20px);border:1px solid rgba(225,29,72,.4);border-radius:20px;padding:2rem;max-width:420px;text-align:center;display:none}
+#game-instructions.active{display:block}
+#game-instructions h3{color:#fb7185;font-size:1.4rem;margin-bottom:.8rem}
+#game-instructions p{color:#fecdd3;line-height:1.6;margin-bottom:1.2rem}
+
+/* Reward */
+#reward-screen{z-index:35;background:rgba(0,0,0,.8);backdrop-filter:blur(15px)}
+#reward-screen .reward-inner{max-width:500px;animation:rewardPop .6s ease}
+@keyframes rewardPop{from{transform:scale(.5);opacity:0}to{transform:scale(1);opacity:1}}
+#reward-screen .reward-emoji{font-size:60px;margin-bottom:1rem}
+#reward-screen h2{color:#ff6b8a;font-size:1.8rem;margin-bottom:.5rem}
+#reward-screen .reward-msg{color:#fecdd3;font-size:1.05rem;line-height:1.7;margin-bottom:1.5rem}
+
+/* Finale */
+#finale-screen{z-index:35;background:radial-gradient(ellipse at center,rgba(60,10,20,.95),rgba(0,0,0,.98))}
+#finale-screen h1{font-size:clamp(1.8rem,5vw,3rem);background:linear-gradient(135deg,#ff6b8a,#e11d48,#ff8fa3);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:1rem}
+#finale-screen .finale-text{max-width:600px;font-size:1.1rem;line-height:2;color:#fecdd3;margin-bottom:2rem}
+#finale-screen .finale-text strong{color:#ff6b8a}
+#finale-screen .finale-heart{font-size:100px;animation:heartBeat 1.5s ease-in-out infinite}
+@keyframes heartBeat{0%,100%{transform:scale(1)}50%{transform:scale(1.15)}}
+
+/* Progress bar */
+#progress-bar{position:fixed;bottom:1rem;left:50%;transform:translateX(-50%);z-index:25;display:flex;gap:.5rem;opacity:0;transition:opacity .5s}
+#progress-bar.active{opacity:1}
+#progress-bar .dot{width:12px;height:12px;border-radius:50%;background:rgba(255,255,255,.2);transition:background .5s,box-shadow .5s,transform .3s}
+#progress-bar .dot.visited{background:#e11d48;box-shadow:0 0 10px rgba(225,29,72,.6)}
+#progress-bar .dot.current{background:#ff6b8a;box-shadow:0 0 15px rgba(255,107,138,.6);transform:scale(1.3)}
+
+/* Warp overlay */
+#warp-overlay{position:fixed;inset:0;z-index:15;background:transparent;display:none;pointer-events:none}
+#warp-overlay.active{display:block}
+
+/* Memory game grid */
+.memory-grid{display:grid;grid-template-columns:repeat(4,70px);gap:10px;justify-content:center;margin:1rem auto}
+.memory-card{width:70px;height:70px;background:rgba(225,29,72,.15);border:2px solid rgba(225,29,72,.35);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:2rem;cursor:pointer;transition:transform .3s,background .3s}
+.memory-card.flipped{background:rgba(225,29,72,.45);transform:rotateY(180deg)}
+.memory-card.matched{background:rgba(255,107,138,.4);border-color:#ff6b8a}
+
+/* Simon Says game */
+.simon-container{display:flex;flex-direction:column;align-items:center;gap:1rem}
+.simon-grid{display:grid;grid-template-columns:repeat(2,100px);gap:12px;justify-content:center}
+.simon-btn{width:100px;height:100px;border-radius:18px;border:3px solid rgba(255,255,255,.15);cursor:pointer;transition:all .2s;opacity:.5;display:flex;align-items:center;justify-content:center;font-size:2.5rem}
+.simon-btn.lit{opacity:1;transform:scale(1.1);box-shadow:0 0 30px currentColor}
+.simon-btn.clickable{opacity:.75;cursor:pointer}
+.simon-btn.clickable:hover{opacity:.9;transform:scale(1.05)}
+.simon-btn:nth-child(1){background:rgba(255,80,80,.4);color:#ff5050}
+.simon-btn:nth-child(2){background:rgba(80,180,255,.4);color:#50b4ff}
+.simon-btn:nth-child(3){background:rgba(80,255,130,.4);color:#50ff82}
+.simon-btn:nth-child(4){background:rgba(255,210,60,.4);color:#ffd23c}
+.simon-status{font-size:1.1rem;color:#fb7185;min-height:2rem}
+
+/* Video overlay */
+#video-overlay{position:fixed;top:50%;right:-400px;transform:translateY(-50%);z-index:40;width:340px;border-radius:20px;overflow:hidden;border:3px solid rgba(225,29,72,.6);box-shadow:0 0 40px rgba(225,29,72,.4);transition:right .5s cubic-bezier(.22,1,.36,1);background:#000}
+#video-overlay.active{right:20px}
+#video-overlay.left-side{right:auto;left:-400px;transition:left .5s cubic-bezier(.22,1,.36,1)}
+#video-overlay.left-side.active{left:20px}
+#video-overlay video{width:100%;display:block;border-radius:17px}
+#video-overlay .vid-label{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.7);color:#ff6b8a;padding:4px 14px;border-radius:20px;font-size:.85rem;font-weight:700;backdrop-filter:blur(8px)}
+
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}
+
+/* Music Control */
+#music-btn{position:fixed;top:20px;right:20px;z-index:100;background:rgba(0,0,0,.7);border:2px solid rgba(225,29,72,.5);color:#ff6b8a;width:50px;height:50px;border-radius:50%;font-size:1.5rem;cursor:pointer;transition:all .3s;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(10px)}
+#music-btn:hover{background:rgba(0,0,0,.9);border-color:#ff6b8a;box-shadow:0 0 20px rgba(225,29,72,.5)}
+#music-btn.muted{opacity:.5}
+
+@media(max-width:600px){
+  .memory-grid{grid-template-columns:repeat(4,55px);gap:8px}
+  .memory-card{width:55px;height:55px;font-size:1.5rem}
+  .simon-grid{grid-template-columns:repeat(2,80px);gap:10px}
+  .simon-btn{width:80px;height:80px;font-size:2rem}
+  #video-overlay{width:260px}
+  #video-overlay.active{right:10px}
+  #video-overlay.left-side.active{left:10px}
+  #music-btn{top:10px;right:10px;width:45px;height:45px;font-size:1.2rem}
+}
+</style>
+</head>
+<body>
+<audio id="bgMusic" loop preload="auto"></audio>
+<button id="music-btn" onclick="toggleMusic()" title="Toggle Music">🎵</button>
+<canvas id="scene3d"></canvas>
+<canvas id="gameCanvas"></canvas>
+<div id="warp-overlay"></div>
+
+<!-- TITLE SCREEN -->
+<div class="overlay" id="title-screen">
+  <div class="rocket-emoji">🚀</div>
+  <h1>Cosmic Date</h1>
+  <p class="sub">I’m taking you on a date through the solar system kochanie!✨</p>
+  <button class="btn" onclick="startGame()">行くぞ!</button>
+</div>
+
+<!-- DIALOG BOX -->
+<div class="overlay hidden" id="dialog-box">
+  <div class="dialog-inner">
+    <div class="planet-emoji" id="dlg-emoji"></div>
+    <h2 id="dlg-title"></h2>
+    <div class="cutscene-pages" id="dlg-pages"></div>
+    <p class="scene-label" id="dlg-scene-label"></p>
+    <p class="story" id="dlg-story"></p>
+    <button class="btn" id="dlg-btn" onclick="onDialogNext()">Next →</button>
+  </div>
+</div>
+
+<!-- GAME INSTRUCTIONS -->
+<div id="game-instructions">
+  <h3 id="gi-title"></h3>
+  <p id="gi-desc"></p>
+  <button class="btn" onclick="startMiniGame()">Play! 🎮</button>
+</div>
+
+<!-- GAME HUD -->
+<div id="game-hud">
+  <span id="hud-lives"></span>
+  <span><span class="hud-label">Goal: </span><span class="hud-val" id="hud-goal"></span></span>
+  <span><span class="hud-label">Score: </span><span class="hud-val" id="hud-score">0</span></span>
+</div>
+
+<!-- HTML GAME CONTAINER -->
+<div class="overlay hidden" id="html-game-container">
+  <div id="html-game-inner" style="max-width:500px;width:100%"></div>
+</div>
+
+<!-- REWARD SCREEN -->
+<div class="overlay hidden" id="reward-screen">
+  <div class="reward-inner">
+    <div class="reward-emoji" id="reward-emoji">🎉</div>
+    <h2 id="reward-title">Amazing!</h2>
+    <p class="reward-msg" id="reward-msg"></p>
+    <button class="btn" onclick="nextPlanet()">Fly on! 🚀</button>
+  </div>
+</div>
+
+<!-- FINALE SCREEN -->
+<div class="overlay hidden" id="finale-screen">
+  <div class="finale-heart">❤️</div>
+  <h1>Infinite Love</h1>
+  <p class="finale-text" id="finale-text"></p>
+  <button class="btn" onclick="window.location.href='valentine.html'" style="margin-top:1rem">Back to Valentine 💌</button>
+</div>
+
+<!-- VIDEO OVERLAY -->
+<div id="video-overlay">
+  <video id="fight-video" muted playsinline></video>
+  <div class="vid-label" id="vid-label"></div>
+</div>
+
+<!-- PROGRESS BAR -->
+<div id="progress-bar"></div>
+
+<!-- LUCJUSZ RESCUE -->
+<div id="lucjusz-rescue">
+  <img src="lucjusz2.png" alt="Lucjusz">
+  <h2>Don't worry! 🐱</h2>
+  <p>You didn't make it... but Lucjusz is here to save the day! 💪❤️</p>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+// ========== PLANET DATA ==========
+const PLANETS = [
+  {
+    name: 'Mercury', emoji: '☀️', texture: 'textures/2k_mercury.jpg',
+    size: 1.2, color: 0xaaaaaa,
+    story: [
+      `☀️ <em>[ Landing on Mercury ]</em><br><br>We descend through waves of scorching heat. Mercury's surface stretches before us — an ocean of craters bathed in blinding, merciless sunlight. The Sun looks <em>three times bigger</em> from here.<br><br>Our ship's thermostat screams: <strong>430°C outside.</strong><br><br>You look at me worried — but don't worry, 윤아, I've got this.<br><br><em>"LOVE NO KOKYU... ICHI NO KATA... ☀️ SOLAR SHIELD!!!"</em><br><br>I press the AC button. The cockpit cools to a pleasant 22°C. You stare at me like I'm insane. Yeah, I just used a breathing technique to turn on the air conditioning. It's about the delivery, 윤아. 😎<br><br>Welcome to Mercury. The closest planet to the Sun. And somehow still not as hot as you.`,
+      `👣 <em>[ Walking the Sun-baked Plains ]</em><br><br>Come, walk with me. I know the ground looks scary — craters everywhere, the Sun hammering down — but I promise, these spacesuits can handle it.<br><br>I try to hold your hand through these ridiculous gloves. It's like wearing oven mitts. But you know what? Even through three layers of insulation, I can feel it. That warmth. That's not the Sun, 윤아. That's you.<br><br>Look at this place. An entire planet, and we're the only two people on it. No one for 77 million kilometers. Just us and the silence and this golden light painting everything like a dream.<br><br>I know I make dumb jokes. I know sometimes I'm a mess. But right here, right now, walking next to you across another world? I feel like the luckiest person in the Solar System. 😏`,
+      `🌅 <em>[ Sunset on Mercury ]</em><br><br>Sit with me here, on the edge of this crater. Look — the Sun is going down. On Mercury, a sunset takes <em>59 Earth days</em>. The slowest, most dramatic sunset in existence. And we've got front row seats.<br><br>The shadows are stretching across the entire horizon, painting everything in shades of gold and amber. It's so quiet here. No wind. No sound. Just my heartbeat and yours.<br><br><em>"I'd burn a thousand times just to share this sunset with you."</em><br><br>Wait — 윤아, do you see that?! Fireballs! The Sun is spitting solar flares right at us! Quick, grab the deflector — we need to bounce them back before they hit the ship! 🔥`
+    ],
+    game: 'solar-pong',
+    gameTitle: '🏓 Solar Pong',
+    gameDesc: 'A fireball is coming your way! Move your mouse up/down to deflect it with your paddle. Deflect 7 times!',
+    gameGoal: 7,
+    reward: '🔥 Our love is like the Sun — it can never be extinguished.',
+  },
+  {
+    name: 'Venus', emoji: '❤️', texture: 'textures/2k_venus.jpg',
+    size: 1.5, color: 0xffcc66,
+    story: [
+      `🌫️ <em>[ Descending through Golden Clouds ]</em><br><br>Venus. The planet of love. Named after the Roman goddess of beauty herself<br><br>Look at this, 윤아 — golden clouds swirling around us like a dream. As we break through the atmosphere, an alien landscape reveals itself: volcanic plains glowing amber under a hazy, magical sky.<br><br>And then — the clouds part, and beams of golden light fall right on you. Like a spotlight. Like even Venus knows who the real star is here.<br><br>Are you secretly a goddess and you just never told me? Because right now, standing in that light, I genuinely can't tell the difference. 💛`,
+      `🌸 <em>[ The Crystal Garden ]</em><br><br>Come, I found something. A hidden garden — crystal flowers growing from volcanic soil, shimmering pink and gold, catching the amber light. They're impossibly beautiful. Almost as beautiful as the person standing next to me.<br><br>Here — I picked this one for you. The most perfect crystal flower on Venus. Possibly cursed. Definitely radioactive. But incredibly pretty, so it reminded me of you.<br><br>Let me tuck it behind your ear... there. Perfect. For a second, everything stops — the clouds, the wind, my heartbeat. You're glowing, and it's not just the crystal.<br><br><em>"LOVE NO KOKYU... NI NO KATA... 🌸 FLOWER OF VENUS!!!"</em><br><br>I know, I know. I'm ridiculous. But you're blushing, so it worked. 😏`,
+      `💃 <em>[ Dancing under Venus's Sky ]</em><br><br>The sky is turning deep rose. The perfect color. The perfect moment.<br><br>Give me your hand, 윤아. Yes, right here. No, there's no music. We don't need any. We never have.<br><br>My hand on your waist. The weak gravity lifts us slightly with every step — we're almost floating. Dancing on another planet, weightless, just the two of us under an alien sky that's blushing for us.<br><br>I spin you. You laugh — and I swear, that sound could make flowers bloom on any planet. Even this one.<br><br>Even Venus would be jealous of you, 윤아. And I'm not kidding. Not this time. Not ever.<br><br>Hold on — 윤아, don't move. Look at the ground beneath us... there's a shape glowing in the volcanic glass. It's a heart. Venus wants us to trace it. Here, take my hand — let's draw it together. Every line, every curve. Our heart, written into Venus itself. 💕`
+    ],
+    game: 'draw-heart',
+    gameTitle: '🎨 Draw a Heart',
+    gameDesc: 'Draw a heart with your mouse! Hold the button and trace along the glowing path. Cover 100% of the shape!',
+    gameGoal: 100,
+    reward: '❤️ Every heart I draw is a love confession to you.',
+  },
+  {
+    name: 'Earth', emoji: '🌍', texture: 'textures/2k_earth.jpg',
+    size: 1.6, color: 0x4488ff,
+    story: [
+      `🛸 <em>[ Orbiting Home ]</em><br><br>Earth. Look at it, 윤아. Our tiny blue marble. Swirls of clouds, sapphire oceans, emerald lands, all wrapped in a thin blue atmosphere. Everything we've ever known is on that little sphere.<br><br>I run to the front window and spread my arms wide.<br><br><em>"I'm the king of the world!!!"</em> 🚢<br><br>Yes, like Titanic. Don't judge me. Except this is better — the Titanic sank. Our rocket doesn't. Well... yet. Don't jinx it, 윤아. 😂<br><br>But seriously — seeing our home from up here... it changes something inside you. It makes everything feel small and infinite at the same time.`,
+      `🗺️ <em>[ Two Dots on the Map ]</em><br><br>Come look at the map with me. See that tiny dot? That's Poland. And way, way over there — that's Korea. 8,000 km apart. Two specks on this beautiful blue marble.<br><br>And yet... somehow, a random message on Slowly connected those two dots. A letter that took days to arrive. Then another. Then faster. Then Discord chatting and calling. Almost falling asleep on call and while sending voice messeges, listening to sleepy voices.<br><br>Two tiny dots, connected by invisible threads stronger than gravity itself.<br><br>You know what terrifies me, 윤아? That I almost didn't send that first letter. That you almost didn't be able to reply. One different decision, and this — all of this — would never have happened. We'd just be two strangers on two dots who never knew what they were missing.<br><br>But you did reply. And here we are. Floating above Earth. Together. 🌍`,
+      `🌃 <em>[ City Lights from Space ]</em><br><br>Night is falling over Asia and Europe. Look down — city lights are flickering to life, like earthbound stars. Somewhere in that glow is Poland. And somewhere, far to the east, is Korea.<br><br>I take your hand. No thick gloves this time. Just skin. Just us.<br><br>One day, 윤아, those 8,000 km won't matter anymore. One day, we'll be in the same dot on this map. I'll come to Korea, or you'll come to Poland, or we'll meet somewhere in between — I honestly don't care where. I just know it'll happen.<br><br>I promise. On every star below us. On every light in every city. On everything I am and everything I'll ever be.<br><br>Those two dots WILL become one. And I mean it with every atom of my being. 🌃<br><br>Look, 윤아 — from up here you can see it. Two tiny lights orbiting Earth. One over Poland, one over Korea. They're drifting at different speeds... but if we time it right, we can sync them. Let's bring those together — even if just for a moment. 💞`
+    ],
+    game: 'orbit-sync',
+    gameTitle: '💞 Orbit Sync',
+    gameDesc: 'Two hearts orbit Earth — Poland and Korea. Click or press SPACE to speed up your heart and sync with the other! Align them 8 times!',
+    gameGoal: 8,
+    reward: '💞 Two hearts, 8,000 km apart — but always in sync.', 
+  },
+  {
+    name: 'Mars', emoji: '🔴', texture: 'textures/2k_mars.jpg',
+    size: 1.3, color: 0xcc4422,
+    story: [
+      `🏜️ <em>[ Landing on the Red Planet ]</em><br><br>Mars! The Red Planet. Look at this — rust-colored dunes, ancient riverbeds, a pink sky that looks like a watercolor painting. Beautiful and eerie at the same time.<br><br>Careful when you step out — low gravity here. Watch me, I'll show you how it's done—<br><br><em>"LOVE NO KOKYU... SAN NO KATA... 🏜️ GRACEFUL LANDING!!!"</em><br><br>...I am face-down in Martian dust. That was intentional. A very advanced technique. You wouldn't understand, 윤아. Stop laughing. 😤<br><br>Okay fine, it was hilarious. Your laugh echoing across these empty canyons just made Mars the warmest planet in the Solar System. Help me up?`,
+      `🔮 <em>[ The Crystal Canyon ]</em><br><br>Look at this, 윤아 — come closer. See these crystals in the walls? They pulse with light. Red, blue, green, gold. Like heartbeats frozen in stone.<br><br>Touch the wall. See? They react to you! Pink light, exploding where your fingers press. Now watch — I put my hand next to yours. Blue. And where our hands almost touch... <em>purple</em>. Our colors, mixed together.<br><br>Even a cave on Mars ships us, 윤아. This cave is literally our biggest fan. It's glowing for us. Billions of years these crystals waited in the dark, and they light up the moment we walk in together.<br><br>`,
+      `💓 <em>[ Heartbeats in Sync ]</em><br><br>Wait — put your hands on those two crystals. Like this. Both palms flat. Feel that?<br><br>They're syncing. A steady, warm pulse. Thump. Thump. Thump. The whole canyon is coming alive — every crystal joining the rhythm, filling this ancient place with golden light.<br><br>It's beating like a heart. Like <em>our</em> heart.<br><br>윤아 — whether we're 8,000 km apart, or standing together in a crystal cave on Mars — our hearts have always been in sync. Always.<br><br>You rest your head on my shoulder. The crystals dim to a soft glow, as if giving us privacy. Even Mars knows we belong together. 🔮<br><br>Wait — the crystals are doing something new. They're flashing in a sequence! Red, blue, gold, green... it's a code, 윤아. A secret Martian code. I think they're trying to teach us their language. Watch the pattern and repeat it — let's crack it together! 🔮`
+    ],
+    game: 'simon-says',
+    gameTitle: '🔮 Martian Code',
+    gameDesc: 'The crystals of Mars flash a mysterious code! Memorize the color sequence and repeat it. Complete 7 rounds!',
+    gameGoal: 7,
+    reward: '🔮 Our secret code — a secret only we share.',
+  },
+  {
+    name: 'Jupiter', emoji: '🪐', texture: 'textures/2k_jupiter.jpg',
+    size: 3.0, color: 0xddaa77,
+    story: [
+      `😮 <em>[ Approaching the Giant ]</em><br><br>윤아... look. Jupiter. The biggest planet in the Solar System — so massive it could fit 1,300 Earths inside. Those swirling bands of clouds have been raging for centuries. Lightning bolts the size of entire countries flashing through the atmosphere.<br><br>Our little rocket feels like an ant next to a mountain. I've never seen anything this enormous. It's terrifying and magnificent and it makes me realize how tiny we are.<br><br>But you know what? Being tiny doesn't scare me. Being tiny with you next to me? That's actually kind of perfect. Two tiny people in a tiny rocket, facing the biggest storm in the known universe.<br><br>Together. The way it should be. 🪐`,
+      `⛈️ <em>[ Into the Great Red Spot ]</em><br><br>Hold on tight, 윤아 — we're going in. The Great Red Spot. A storm that's been raging for over <strong>350 years</strong>. Bigger than Earth. Winds at 600 km/h.<br><br>The ship starts shaking. Lightning crackles. Red light floods the cockpit. Alarms blare everywhere.<br><br>But I look at you, and you're not scared. You're grinning. Your eyes are lit up. You love this.<br><br><em>"LOVE NO KOKYU... YON NO KATA... ⛈️ STORM BREAKER!!!"</em><br><br>I slam the turbo. The engines scream. We punch through walls of crimson cloud at Mach 3, the whole ship vibrating, lightning flashing past the windows like a cosmic firework show.<br><br>And you — you're laughing. In the middle of the most violent storm in the Solar System, you're laughing. I love you 윤아. 🌩️`,
+      `🌤️ <em>[ Through the Storm ]</em><br><br>We made it through. Look at us — hair ruined, hearts pounding, cockpit a complete disaster. Everything that wasn't bolted down is on the floor. Including my dignity after that scream I let out. We don't talk about that scream, 윤아.<br><br>But look below — Jupiter's clouds are swirling into patterns that almost look like... a heart. Even this gas giant is a romantic at heart. Literally.<br><br>350 years of storms, 윤아. 350 years of chaos and lightning and wind. And our love? Our love will outlast every single one.<br><br>You lean your forehead against mine. Both of us still catching our breath. Both of us covered in adrenaline. Both of us exactly where we're supposed to be. 🪐<br><br>Uh oh — 윤아, don't relax yet! We're still inside the storm zone! Jupiter's hurling debris at us from every direction — asteroids, ice chunks, the works. I need you to steer! Move the rocket up and down to dodge them. Just hold on for 15 seconds — we can do this! 🌪️`
+    ],
+    game: 'storm-dodge',
+    gameTitle: '🌪️ Dodge the Storm',
+    gameDesc: 'We\'re flying through Jupiter\'s Great Red Spot! Move your mouse up/down to dodge meteors. Survive 15 seconds!',
+    gameGoal: 15,
+    reward: '🌪️ Together we can weather any storm.',
+  },
+  {
+    name: 'Saturn', emoji: '💍', texture: 'textures/2k_saturn.jpg',
+    size: 2.5, color: 0xeedd88, hasRing: true,
+    story: [
+      `✨ <em>[ The Ringed Wonder ]</em><br><br>윤아... Saturn. Look at those rings. Thousands of kilometers of pure magic — billions of ice crystals catching the sunlight like an infinite diamond necklace draped across the cosmos.<br><br>You started to say it's the most beautiful thing you've ever seen. But sorry — second most beautiful. Because I'm looking at the first hehe.<br><br>Even Saturn's rings seem to glow brighter right now. The whole universe is on our side tonight!`,
+      `❄️ <em>[ Flying Through the Rings ]</em><br><br>We're flying through the rings now, 윤아. Ice crystals sparkling all around us like snowfall in space. Tiny rainbows dancing across the cockpit. It's like flying through the most beautiful dream ever imagined.<br><br>I catch a tiny ice crystal through the force field. Hold it up to the light — it shimmers like a diamond. Like a tiny ring.<br><br>I get down on one knee. Yes, dramatically. Obviously dramatically.<br><br><em>"LOVE NO KOKYU... GO NO KATA... 💍 ETERNAL PROMISE!!!"</em><br><br>I know it's going to melt. I know it's an ice crystal and not a diamond. But the promise behind it? That's permanent, 윤아.<br><br>Someday I'll give you a real ring. One that won't melt. One that'll last forever. I promise. 💍`,
+      `🌙 <em>[ Sitting on Infinity ]</em><br><br>Come sit with me here. Right on the edge of this ring fragment — a house-sized chunk of ice floating among billions. Legs dangling over the infinite abyss of space. <br><br>This is our Titanic moment, 윤아. Two people on the edge of infinity. Except our "ship" is a chunk of ice orbiting a gas giant, and instead of "My Heart Will Go On," there's just the hum of the cosmos hahah. And unlike Jack, I would NEVER let go. He was an idiot. There was room on that door for two. I would've made room. I would've BUILT another door. 🚪<br><br>Saturn has 146 moons, 윤아. 146. But I only need one moon - You! 🌙<br><br>The rings shimmer around us, as if the entire planet is nodding in agreement.<br><br>윤아, look! A glowing light is circling through Saturn's ring — like a shooting star trapped in orbit. See that golden zone? If we tap at exactly the right moment when it passes through... I think something magical will happen. Feel the rhythm of the ring — and hit it! 💍`
+    ],
+    game: 'ring-rhythm',
+    gameTitle: '💍 Ring Rhythm',
+    gameDesc: 'A ring orbits around! Click or press SPACE exactly when the glowing dot is in the golden zone. Hit 10 times!',
+    gameGoal: 10,
+    reward: '💍 Ring is a symbol of promise — someday I\'ll give you the most important one.',
+  },
+  {
+    name: 'Uranus', emoji: '💎', texture: 'textures/2k_uranus.jpg',
+    size: 2.0, color: 0x66ccdd,
+    story: [
+      `🔵 <em>[ The Sideways World ]</em><br><br>Uranus, 윤아. The planet that spins on its side, tilted 98 degrees. A rebellious ice giant that decided to rotate however it wants. No rules. No norms.<br><br>I wanted to bring you here because this planet reminds me of something important.<br><br>Some things don’t need to be explained to be real. They just are.`, 
+      `💎 <em>[ The Diamond Caves ]</em><br><br>Come underground with me. Look — diamonds. Real, actual diamonds. Formed under billions of years of immense pressure, glowing with captured starlight. This cave is a cathedral of light.<br><br>I pick up the biggest one I can find. It's probably worth more than every country on Earth combined. I'm putting it in my pocket. Yes, it's for you. Everything beautiful I find is for you, 윤아.<br><br><em>"LOVE NO KOKYU... ROKU NO KATA... 💎 DIAMOND GIFT!!!"</em><br><br>I hold it up and it catches the light — rainbows scatter everywhere, painting the cave in a thousand colors.<br><br>Diamonds made from hardship. From unbearable pressure. From billions of years of patience. Beautiful not despite the suffering, but BECAUSE of it. Kind of like us, 윤아. Kind of exactly like us. 🌈`,
+      `🌈 <em>[ Our Initials in Diamond ]</em><br><br>I found the biggest, smoothest diamond wall. And a laser cutter. You know what that means.<br><br><em>K + Y ❤️</em><br><br>The letters catch the light and project tiny rainbows across the entire cave — hundreds of hearts of color dancing on every surface. Our initials, written in diamond, 2.9 billion km from Earth.<br><br>I wrap my arms around you from behind.<br><br>...perfect. Just like us, 윤아. Absolutely, completely, impossibly perfect. 💎<br><br>These diamonds will last for billions of years. And so will this.<br><br>Hmm, 윤아... these diamond walls are covered in strange symbols. They look like pairs — matching crystals hidden behind the ice. I bet if we find all the matching pairs, the cave will reveal something. Let's test our memory together — you flip one, I'll remember it. 💎`
+    ],
+    game: 'memory-match',
+    gameTitle: '💎 Crystal Memory',
+    gameDesc: 'Find matching pairs of cosmic crystals! Flip cards and match pairs. Find all 8 pairs!',
+    gameGoal: 8,
+    reward: '💎 Our love is like a diamond — unbreakable and eternal.',
+  },
+  {
+    name: 'Neptune', emoji: '🌊', texture: 'textures/2k_neptune.jpg',
+    size: 1.9, color: 0x3355ff,
+    story: [
+      `🌑 <em>[ Edge of the Solar System ]</em><br><br>Neptune, 윤아. The last planet. The farthest world from the Sun. Deep blue, wild, mysterious. Out here, sunlight is barely a memory.<br><br>It's hauntingly beautiful. The deepest blue you've ever seen, swirling with secrets billions of years old.<br><br>But then — <strong>BEEP. BEEP. BEEP.</strong> The radar lights up. Strange signals. Dozens of energy signatures. Moving in formation. Coming straight for us.<br><br>I zoom in. Those aren't asteroids. Those aren't natural. Something is out there. And it's heading right for us, 윤아.<br><br>The cockpit goes dark. Emergency lights. Red. The deepest, coldest part of the Solar System... and we're not alone. 🚨`,
+      `👾 <em>[ First Contact ]</em><br><br>They emerge from behind Neptune — an entire alien fleet. Dozens of ships glowing with hostile purple energy, surrounding us from every direction. No escape.<br><br>A message crackles through the radio: <strong>"SURRENDER! In this space, hugging is not allowed! WE HAVE TO SEPERATE YOU!"</strong><br><br>...Did these aliens just threaten to us? <br><br>윤아, I don't think they understand what they just did.<br><br> Different time zones couldn't seperate us. Different languages couldn't. An entire ocean couldn't. And now some purple glowing aliens think THEY can?<br><br>I crack my knuckles.<br><br><em>"LOVE NO KOKYU... NANA NO KATA... 👾 COSMIC FURY!!!"</em><br><br>These aliens picked the wrong couple. 🔥`,
+      `⚔️ <em>[ Battle Stations ]</em><br><br>Battle stations, 윤아. Shields: MAX. Weapons: ALL. Music: Gurenge at maximum volume, obviously. What kind of cosmic battle would it be without the soundtrack?<br><br><em>Kuba & 윤아 vs. the entire alien armada.</em><br><br>No alien. No distance. No storm. No force in the entire cosmos can keep me from you, 윤아. Not now. Not ever. Not in a million light-years.<br><br>Every dodge perfectly timed. Every shot landing true. We move like we've been doing this our whole lives hahah.<br><br><em>"LOVE NO KOKYU... FINAL KATA... ⚔️ FIGHTING SIDE BY SIDE!!!"</em><br><br>Let's show the universe what love can do.<br><br>Here they come, 윤아! The first wave is approaching! See them? Click on every alien ship as fast as you can — take them down one by one. We fight together. Always. Let's go! 👾`
+    ],
+    game: 'alien-fight',
+    gameTitle: '👾 Cosmic Battle',
+    gameDesc: 'Aliens are attacking! Click on them to destroy them! Defeat 10 invaders!',
+    gameGoal: 10,
+    reward: '🌊 Together we can defeat any enemy — on Earth, in space, and everywhere else!',
+  },
+  {
+    name: 'Andromeda', emoji: '🌌', texture: null,
+    size: 0, color: 0xdd3366,
+    story: [
+      `🚀 <em>[ Beyond Everything ]</em><br><br>We did it, 윤아. We've flown beyond the Solar System. Past the Oort Cloud. Through interstellar space. Further than any human, any probe, any signal has ever gone.<br><br>2.5 million light-years from home. The Milky Way is just a faint smudge behind us — a tiny swirl of light containing everything we've ever known. Earth is invisible... Nothing exist here.<br><br>Nothing except us.<br><br>I look at you. The most beautiful in the whole universe. My girl who often stay up until 4 AM, and always waiting for me after waking up. Who laughing at my terrible jokes. Who flew through Jupiter's storm without flinching. Who fought an alien armada with me.<br><br>Am I scared? Not even a little bit. I am so incredibly grateful to have you. You are my true whole universe`,
+      `🌀 <em>[ A Trillion Stars ]</em><br><br>Look at it, 윤아. Andromeda. A trillion stars spiraling before us — each one a sun, each one could have planets, life, love stories of their own.<br><br>But ours is my favorite. I'm sure of it. In all of these trillion stars, across all the billions of galaxies in the observable universe... our story is the one I'd choose. Every time. In every universe. In every timeline.<br><br>Fun fact: in 4 billion years, Andromeda and the Milky Way will collide. Two galaxies, pulled together across millions of light-years by invisible forces they can't resist. Merging into one.<br><br>Two things that started impossibly far apart. That spent eons getting closer. And that were always — ALWAYS — destined to become one.<br><br>Just like us kochanie. One day we will be together for the rest of our lives. I think the universe wrote our story before we were even born.`,
+      `💋 <em>[ The Kiss at the Edge of Everything ]</em><br><br>The ship is quiet. The engines hum softly. A trillion stars glow outside our window, painting your face in starlight.<br><br>I take both your hands.<br><br>My favorite place in all of existence? In all of these trillion stars, billion galaxies, infinite light-years of space? It's still just... anywhere you are. A rocket. A Discord call. A letter. A bench. A room. Anywhere — as long as you're there.<br><br>I lean closer.<br><br><em>"LOVE NO KOKYU..."</em><br><br>But I don't finish. Because this time, you close the distance first.<br><br>💋<br><br>Our first kiss. At the edge of everything. 2.5 million light-years from home, surrounded by a trillion stars, at the end of the greatest journey in the history of the universe.<br><br>And it was worth every single kilometer.<br><br><em>사랑해, 윤아. 영원히.</em> ❤️‍🔥`
+    ],
+    game: null, gameTitle: null, gameDesc: null, gameGoal: 0, reward: null,
+  }
+];
+
+const MEMORY_SYMBOLS = ['🌙','⭐','🚀','💫','🪐','❤️','🔮','🌠'];
+const FIGHT_VIDEOS = ['kuba.mp4','yuna.mp4'];
+const FIGHT_LABELS = ['⚔️ Kuba fights!','⚔️ Yuna fights!'];
+
+// ========== THREE.JS SETUP ==========
+const canvas3d = document.getElementById('scene3d');
+const renderer = new THREE.WebGLRenderer({ canvas: canvas3d, antialias: true, alpha: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 2000);
+camera.position.set(0, 1, 8);
+
+const ambientLight = new THREE.AmbientLight(0x404050, 1.5);
+scene.add(ambientLight);
+const sunLight = new THREE.DirectionalLight(0xffeedd, 2);
+sunLight.position.set(5, 3, 5);
+scene.add(sunLight);
+const pointLight = new THREE.PointLight(0xe11d48, 1, 50);
+pointLight.position.set(-3, 2, 3);
+scene.add(pointLight);
+
+// Starfield
+const starGeometry = new THREE.BufferGeometry();
+const starCount = 3000;
+const starPositions = new Float32Array(starCount * 3);
+for (let i = 0; i < starCount * 3; i++) starPositions[i] = (Math.random() - 0.5) * 600;
+starGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+const starMaterial = new THREE.PointsMaterial({ color: 0xffffff, size: 0.5, sizeAttenuation: true });
+const stars = new THREE.Points(starGeometry, starMaterial);
+scene.add(stars);
+
+const textureLoader = new THREE.TextureLoader();
+const gltfLoader = new GLTFLoader();
+
+let currentPlanetMesh = null;
+let saturnRing = null;
+let rocketModel = null;
+let rocketMixer = null;
+
+// Load rocket
+gltfLoader.load('rakieta.glb', (gltf) => {
+  rocketModel = gltf.scene;
+  rocketModel.scale.set(0.3, 0.3, 0.3);
+  rocketModel.position.set(3, -0.5, 4);
+  rocketModel.rotation.set(-Math.PI/2, -0.5, 0.1);
+  rocketModel.visible = false;
+  scene.add(rocketModel);
+  if (gltf.animations && gltf.animations.length > 0) {
+    rocketMixer = new THREE.AnimationMixer(rocketModel);
+    gltf.animations.forEach(clip => rocketMixer.clipAction(clip).play());
+  }
+}, undefined, () => {
+  const rocketGroup = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.2, 1, 8), new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0.8, roughness: 0.2 }));
+  const nose = new THREE.Mesh(new THREE.ConeGeometry(0.15, 0.4, 8), new THREE.MeshStandardMaterial({ color: 0xff4444, metalness: 0.5, roughness: 0.3 }));
+  nose.position.y = 0.7;
+  rocketGroup.add(body, nose);
+  rocketGroup.scale.set(0.8, 0.8, 0.8);
+  rocketGroup.position.set(3, -0.5, 4);
+  rocketGroup.visible = false;
+  scene.add(rocketGroup);
+  rocketModel = rocketGroup;
+});
+
+// ========== GAME STATE ==========
+let currentPlanetIndex = -1;
+let gameState = 'title';
+let travelProgress = 0;
+let warpActive = false;
+let warpSteer = {x:0, y:0, targetX:0, targetY:0};
+let miniGameActive = false;
+let miniGameScore = 0;
+let miniGameType = '';
+let miniGameData = {};
+let alienFightPaused = false;
+let videoPlayCount = 0;
+let cutscenePage = 0;
+let lives = 3;
+const MAX_LIVES = 3;
+const gameCanvas = document.getElementById('gameCanvas');
+const gameCtx = gameCanvas.getContext('2d');
+
+// ========== PROGRESS BAR ==========
+function initProgressBar() {
+  const bar = document.getElementById('progress-bar');
+  bar.innerHTML = '';
+  PLANETS.forEach(p => { const d = document.createElement('div'); d.className = 'dot'; d.title = p.name; bar.appendChild(d); });
+}
+function updateProgressBar() {
+  document.querySelectorAll('#progress-bar .dot').forEach((dot, i) => {
+    dot.classList.remove('current', 'visited');
+    if (i < currentPlanetIndex) dot.classList.add('visited');
+    if (i === currentPlanetIndex) dot.classList.add('current');
+  });
+}
+
+// ========== PLANET 3D SCENE ==========
+function showPlanet(index) {
+  if (currentPlanetMesh) { scene.remove(currentPlanetMesh); currentPlanetMesh = null; }
+  if (saturnRing) { scene.remove(saturnRing); saturnRing = null; }
+  const planet = PLANETS[index];
+  if (index === PLANETS.length - 1) { showAndromedaScene(); return; }
+
+  const geo = new THREE.SphereGeometry(planet.size, 64, 64);
+  let mat;
+  if (planet.texture) { mat = new THREE.MeshStandardMaterial({ map: textureLoader.load(planet.texture), roughness: 0.7, metalness: 0.1 }); }
+  else { mat = new THREE.MeshStandardMaterial({ color: planet.color, roughness: 0.7 }); }
+  currentPlanetMesh = new THREE.Mesh(geo, mat);
+  currentPlanetMesh.position.set(-2, 0, 0);
+  scene.add(currentPlanetMesh);
+
+  if (planet.hasRing) {
+    const rGeo = new THREE.RingGeometry(3.2, 4.5, 64);
+    const rMat = new THREE.MeshStandardMaterial({ color: 0xddcc88, side: THREE.DoubleSide, transparent: true, opacity: 0.7, roughness: 0.8 });
+    saturnRing = new THREE.Mesh(rGeo, rMat);
+    saturnRing.position.copy(currentPlanetMesh.position);
+    saturnRing.rotation.x = Math.PI / 2.5;
+    scene.add(saturnRing);
+  }
+  if (rocketModel) { rocketModel.visible = true; rocketModel.position.set(3, 0, 4); }
+}
+
+let andromedaParticles = null;
+function showAndromedaScene() {
+  const count = 5000, geo = new THREE.BufferGeometry();
+  const pos = new Float32Array(count*3), col = new Float32Array(count*3);
+  for (let i = 0; i < count; i++) {
+    const a = (i/count)*Math.PI*8, r = (i/count)*12+Math.random()*2;
+    pos[i*3]=Math.cos(a)*r+(Math.random()-.5)*2; pos[i*3+1]=(Math.random()-.5)*1.5; pos[i*3+2]=Math.sin(a)*r+(Math.random()-.5)*2-5;
+    const t=i/count; col[i*3]=.8+t*.2; col[i*3+1]=.1+Math.random()*.2; col[i*3+2]=.3+Math.random()*.2;
+  }
+  geo.setAttribute('position',new THREE.BufferAttribute(pos,3));
+  geo.setAttribute('color',new THREE.BufferAttribute(col,3));
+  andromedaParticles = new THREE.Points(geo, new THREE.PointsMaterial({size:.3,vertexColors:true,sizeAttenuation:true,transparent:true,opacity:.8}));
+  scene.add(andromedaParticles);
+  if(rocketModel){rocketModel.visible=true;rocketModel.position.set(0,-1,6);}
+}
+function clearAndromeda(){if(andromedaParticles){scene.remove(andromedaParticles);andromedaParticles=null;}}
+
+// ========== WARP ==========
+function startWarp() {
+  warpActive=true; travelProgress=0;
+  warpSteer={x:0,y:0,targetX:0,targetY:0};
+  document.getElementById('warp-overlay').classList.add('active');
+  if(currentPlanetMesh){scene.remove(currentPlanetMesh);currentPlanetMesh=null;}
+  if(saturnRing){scene.remove(saturnRing);saturnRing=null;}
+  clearAndromeda();
+  if(rocketModel){rocketModel.visible=true;rocketModel.position.set(0,0,5);rocketModel.rotation.set(-Math.PI/2,Math.PI,0);}
+}
+function updateWarp(delta) {
+  if(!warpActive)return; travelProgress+=delta;
+  // Smooth steering interpolation
+  warpSteer.x+=(warpSteer.targetX-warpSteer.x)*5*delta;
+  warpSteer.y+=(warpSteer.targetY-warpSteer.y)*5*delta;
+  // Move rocket
+  if(rocketModel){
+    rocketModel.position.x=warpSteer.x*3;
+    rocketModel.position.y=warpSteer.y*2;
+    // Tilt rocket in direction of movement
+    rocketModel.rotation.set(-Math.PI/2,Math.PI+warpSteer.x*0.4,-warpSteer.y*0.3);
+  }
+  const p=stars.geometry.attributes.position.array;
+  for(let i=0;i<p.length;i+=3){p[i+2]+=150*delta;if(p[i+2]>300)p[i+2]=-300;}
+  stars.geometry.attributes.position.needsUpdate=true;
+  if(travelProgress>2.5){warpActive=false;document.getElementById('warp-overlay').classList.remove('active');arriveAtPlanet();}
+}
+
+// ========== GAME FLOW ==========
+function startGame(){breathingIndex=0;document.getElementById('title-screen').classList.add('hidden');initProgressBar();document.getElementById('progress-bar').classList.add('active');currentPlanetIndex=0;startBackgroundMusic();travelToPlanet();}
+function travelToPlanet(){gameState='travel';updateProgressBar();startWarp();}
+function arriveAtPlanet(){gameState='planet-arrive';showPlanet(currentPlanetIndex);setTimeout(()=>showStory(),800);}
+
+// ========== MUSIC CONTROL ==========
+let isMusicMuted=false;
+function startBackgroundMusic(){
+  const bgMusic=document.getElementById('bgMusic');
+  bgMusic.src='background-music.m4a';
+  bgMusic.volume=0.4;
+  bgMusic.play().catch(()=>{});
+}
+function toggleMusic(){
+  const bgMusic=document.getElementById('bgMusic');
+  const btn=document.getElementById('music-btn');
+  isMusicMuted=!isMusicMuted;
+  if(isMusicMuted){
+    bgMusic.pause();
+    btn.classList.add('muted');
+    btn.textContent='🔇';
+  }else{
+    bgMusic.play().catch(()=>{});
+    btn.classList.remove('muted');
+    btn.textContent='🎵';
+  }
+}
+
+let breathingIndex=0;
+function playBreathingFromText(text){
+  const matches=text.match(/LOVE NO KOKYU/g)||[];
+  if(matches.length===0)return;
+  matches.forEach((_,i)=>{
+    const index=++breathingIndex;
+    const audio=new Audio(`${index}.m4a`);
+    const delay=i*600;
+    setTimeout(()=>{audio.play().catch(()=>{});},delay);
+  });
+}
+
+function showStory() {
+  gameState='story';
+  cutscenePage=0;
+  const p=PLANETS[currentPlanetIndex];
+  const pages=Array.isArray(p.story)?p.story:[p.story];
+  document.getElementById('dlg-emoji').textContent=p.emoji;
+  document.getElementById('dlg-title').textContent=p.name;
+  // build page dots
+  const dotsContainer=document.getElementById('dlg-pages');
+  dotsContainer.innerHTML='';
+  if(pages.length>1){for(let i=0;i<pages.length;i++){const d=document.createElement('span');d.className='page-dot'+(i===0?' active':'');dotsContainer.appendChild(d);}}
+  document.getElementById('dlg-scene-label').textContent=`Scene ${cutscenePage+1} of ${pages.length}`;
+  document.getElementById('dlg-story').innerHTML=pages[0];
+  playBreathingFromText(pages[0]);
+  const isLastPage=pages.length<=1;
+  document.getElementById('dlg-btn').textContent=isLastPage?(p.game?'Let\'s play! 🎮':'Continue... ❤️'):'Next scene →';
+  document.getElementById('dialog-box').classList.remove('hidden');
+}
+
+function onDialogNext(){
+  const p=PLANETS[currentPlanetIndex];
+  const pages=Array.isArray(p.story)?p.story:[p.story];
+  cutscenePage++;
+  if(cutscenePage<pages.length){
+    // update page dots
+    const dots=document.querySelectorAll('#dlg-pages .page-dot');
+    dots.forEach((d,i)=>{d.className='page-dot'+(i<cutscenePage?' done':'')+(i===cutscenePage?' active':'');});
+    document.getElementById('dlg-scene-label').textContent=`Scene ${cutscenePage+1} of ${pages.length}`;
+    // fade in new text
+    const storyEl=document.getElementById('dlg-story');
+    storyEl.style.animation='none';storyEl.offsetHeight;storyEl.style.animation='storyFadeIn .6s ease';
+    storyEl.innerHTML=pages[cutscenePage];
+    playBreathingFromText(pages[cutscenePage]);
+    const isLastPage=cutscenePage>=pages.length-1;
+    document.getElementById('dlg-btn').textContent=isLastPage?(p.game?'Let\'s play! 🎮':'Continue... ❤️'):'Next scene →';
+  } else {
+    document.getElementById('dialog-box').classList.add('hidden');
+    if(p.game) showGameInstructions(); else showFinale();
+  }
+}
+
+function showGameInstructions(){
+  gameState='game-instructions';
+  const p=PLANETS[currentPlanetIndex];
+  document.getElementById('gi-title').textContent=p.gameTitle;
+  document.getElementById('gi-desc').textContent=p.gameDesc;
+  document.getElementById('game-instructions').classList.add('active');
+}
+
+function showReward(){
+  gameState='reward';
+  const p=PLANETS[currentPlanetIndex];
+  document.getElementById('reward-emoji').textContent=p.emoji;
+  document.getElementById('reward-title').textContent=`${p.name} — Complete!`;
+  document.getElementById('reward-msg').textContent=p.reward;
+  const btn=document.querySelector('#reward-screen .btn');
+  btn.textContent = currentPlanetIndex>=PLANETS.length-2 ? 'Fly to Andromeda! 🌌' : `Next: ${PLANETS[currentPlanetIndex+1].name} 🚀`;
+  document.getElementById('reward-screen').classList.remove('hidden');
+  hideGameUI();
+}
+
+function nextPlanet(){
+  document.getElementById('reward-screen').classList.add('hidden');
+  currentPlanetIndex++;
+  if(currentPlanetIndex>=PLANETS.length)showFinale(); else travelToPlanet();
+}
+
+function showFinale(){
+  gameState='finale';
+  document.getElementById('progress-bar').classList.remove('active');
+  document.getElementById('finale-text').innerHTML=`
+    You flew with me across the entire Solar System...<br>
+    From scorching Mercury, through beautiful Venus, our home — Earth,<br>
+    red Mars, enormous Jupiter, ringed Saturn,<br>
+    unique Uranus, mysterious Neptune...<br>
+    all the way to the Andromeda Galaxy. 🌌<br><br>
+    <strong>2.5 million light-years from home — and I still love you just as much.</strong><br><br>
+    Our love is bigger than the cosmos.<br>Stronger than gravity.<br>Eternal like the stars.<br><br>
+    <strong>사랑해, 윤아. Forever and always. ❤️</strong>`;
+  document.getElementById('finale-screen').classList.remove('hidden');
+}
+
+// ========== MINI-GAME ENGINE ==========
+function startMiniGame(){
+  document.getElementById('game-instructions').classList.remove('active');
+  const p=PLANETS[currentPlanetIndex];
+  miniGameType=p.game; miniGameScore=0; miniGameActive=true; miniGameData={};
+  lives=MAX_LIVES;
+  gameState='mini-game';
+  document.getElementById('hud-goal').textContent=p.gameGoal;
+  document.getElementById('hud-score').textContent='0';
+  updateLivesDisplay();
+  document.getElementById('game-hud').classList.add('active');
+  switch(miniGameType){
+    case 'solar-pong':initSolarPong();break;
+    case 'draw-heart':initDrawHeart();break;
+    case 'orbit-sync':initOrbitSync();break;
+    case 'simon-says':initSimonSays();break;
+    case 'storm-dodge':initStormDodge();break;
+    case 'ring-rhythm':initRingRhythm();break;
+    case 'memory-match':initMemoryMatch();break;
+    case 'alien-fight':initAlienFight();break;
+  }
+}
+
+function hideGameUI(){
+  document.getElementById('game-hud').classList.remove('active');
+  gameCanvas.classList.remove('active');
+  document.getElementById('html-game-container').classList.add('hidden');
+  miniGameActive=false;
+  gameCanvas.onmousemove=null;gameCanvas.ontouchmove=null;gameCanvas.onclick=null;
+  gameCanvas.onmousedown=null;gameCanvas.onmouseup=null;gameCanvas.ontouchstart=null;gameCanvas.ontouchend=null;
+  document.onkeydown=null;gameCanvas.style.cursor='';
+  const vo=document.getElementById('video-overlay');if(vo)vo.classList.remove('active','left-side');alienFightPaused=false;
+}
+
+function addScore(amount=1){
+  miniGameScore+=amount;
+  document.getElementById('hud-score').textContent=miniGameScore;
+  if(miniGameScore>=PLANETS[currentPlanetIndex].gameGoal){
+    miniGameActive=false;setTimeout(()=>showReward(),500);
+  }
+}
+
+function updateLivesDisplay(){
+  const el=document.getElementById('hud-lives');
+  let html='';
+  for(let i=0;i<MAX_LIVES;i++) html+=i<lives?'❤️':'<span class="heart-lost">🖤</span>';
+  el.innerHTML=html;
+}
+
+function loseLife(){
+  lives--;
+  updateLivesDisplay();
+  if(lives<=0){
+    // Lucjusz rescue!
+    miniGameActive=false;
+    const rescue=document.getElementById('lucjusz-rescue');
+    rescue.classList.add('active');
+    setTimeout(()=>{
+      rescue.classList.remove('active');
+      setTimeout(()=>showReward(),300);
+    },5000);
+  }
+}
+
+// Cheat: type "skip" to skip current mini-game
+let cheatBuffer='';
+document.addEventListener('keydown',(e)=>{
+  if(!miniGameActive)return;
+  cheatBuffer+=e.key.toLowerCase();
+  if(cheatBuffer.length>4)cheatBuffer=cheatBuffer.slice(-4);
+  if(cheatBuffer==='skip'){
+    cheatBuffer='';
+    miniGameActive=false;
+    setTimeout(()=>showReward(),300);
+  }
+});
+
+function initCanvasGame(){
+  gameCanvas.width=window.innerWidth;gameCanvas.height=window.innerHeight;gameCanvas.classList.add('active');
+}
+
+// =============================================
+// 1. SOLAR PONG (Mercury)
+// =============================================
+function initSolarPong(){
+  initCanvasGame();
+  const W=gameCanvas.width,H=gameCanvas.height;
+  miniGameData={
+    ball:{x:W/2,y:H/2,vx:480,vy:300,r:12},
+    paddle:{x:W-55,y:H/2,w:16,h:90},
+    ai:{x:30,y:H/2,w:16,h:90},
+    trail:[],flashTimer:0
+  };
+  gameCanvas.onmousemove=(e)=>{if(miniGameActive)miniGameData.paddle.y=e.clientY;};
+  gameCanvas.ontouchmove=(e)=>{if(miniGameActive){e.preventDefault();miniGameData.paddle.y=e.touches[0].clientY;}};
+}
+
+function updateSolarPong(dt){
+  if(!miniGameActive)return;
+  const W=gameCanvas.width,H=gameCanvas.height;
+  gameCtx.clearRect(0,0,W,H);
+  const{ball,paddle,ai,trail}=miniGameData;
+
+  // Center line
+  gameCtx.setLineDash([10,10]);gameCtx.strokeStyle='rgba(225,29,72,0.15)';gameCtx.lineWidth=2;
+  gameCtx.beginPath();gameCtx.moveTo(W/2,0);gameCtx.lineTo(W/2,H);gameCtx.stroke();gameCtx.setLineDash([]);
+
+  // Ball physics
+  ball.x+=ball.vx*dt; ball.y+=ball.vy*dt;
+  if(ball.y-ball.r<0){ball.y=ball.r;ball.vy=Math.abs(ball.vy);}
+  if(ball.y+ball.r>H){ball.y=H-ball.r;ball.vy=-Math.abs(ball.vy);}
+
+  // AI paddle
+  ai.y+=(ball.y-ai.y)*4.5*dt;
+
+  // AI bounce
+  if(ball.x-ball.r<ai.x+ai.w&&ball.vx<0&&ball.y>ai.y-ai.h/2&&ball.y<ai.y+ai.h/2){
+    ball.x=ai.x+ai.w+ball.r; ball.vx=Math.abs(ball.vx)*1.05;
+    ball.vy+=(ball.y-ai.y)/(ai.h/2)*120;
+  }
+  // Player bounce
+  if(ball.x+ball.r>paddle.x&&ball.vx>0&&ball.y>paddle.y-paddle.h/2&&ball.y<paddle.y+paddle.h/2){
+    ball.x=paddle.x-ball.r; ball.vx=-Math.abs(ball.vx)*1.05;
+    ball.vy+=(ball.y-paddle.y)/(paddle.h/2)*120;
+    miniGameData.flashTimer=0.25; addScore(1);
+  }
+  // Out of bounds
+  if(ball.x>W+50){ball.x=W/2;ball.y=H/2;ball.vx=-480;ball.vy=(Math.random()-.5)*480;loseLife();}
+  if(ball.x<-50){ball.x=W/2;ball.y=H/2;ball.vx=480;ball.vy=(Math.random()-.5)*480;}
+  ball.vy=Math.max(-700,Math.min(700,ball.vy));
+
+  // Trail
+  trail.push({x:ball.x,y:ball.y,a:1});if(trail.length>25)trail.shift();
+  trail.forEach(t=>{t.a-=dt*4;if(t.a>0){gameCtx.fillStyle=`rgba(255,150,50,${t.a*0.35})`;gameCtx.beginPath();gameCtx.arc(t.x,t.y,ball.r*t.a,0,Math.PI*2);gameCtx.fill();}});
+
+  // AI paddle
+  gameCtx.fillStyle='rgba(255,100,100,0.5)';gameCtx.shadowColor='#ff6666';gameCtx.shadowBlur=12;
+  gameCtx.beginPath();gameCtx.roundRect(ai.x,ai.y-ai.h/2,ai.w,ai.h,8);gameCtx.fill();gameCtx.shadowBlur=0;
+
+  // Player paddle
+  const flash=miniGameData.flashTimer>0;if(flash)miniGameData.flashTimer-=dt;
+  gameCtx.fillStyle=flash?'rgba(255,107,138,0.9)':'rgba(225,29,72,0.7)';
+  gameCtx.shadowColor=flash?'#ff6b8a':'#e11d48';gameCtx.shadowBlur=flash?25:12;
+  gameCtx.beginPath();gameCtx.roundRect(paddle.x,paddle.y-paddle.h/2,paddle.w,paddle.h,8);gameCtx.fill();gameCtx.shadowBlur=0;
+
+  // Ball
+  const g=gameCtx.createRadialGradient(ball.x,ball.y,0,ball.x,ball.y,ball.r);
+  g.addColorStop(0,'#fff8e0');g.addColorStop(0.4,'#ffaa33');g.addColorStop(1,'#ff4400');
+  gameCtx.fillStyle=g;gameCtx.shadowColor='#ff6600';gameCtx.shadowBlur=20;
+  gameCtx.beginPath();gameCtx.arc(ball.x,ball.y,ball.r,0,Math.PI*2);gameCtx.fill();gameCtx.shadowBlur=0;
+}
+
+// =============================================
+// 2. DRAW HEART (Venus)
+// =============================================
+function initDrawHeart(){
+  initCanvasGame();
+  const W=gameCanvas.width,H=gameCanvas.height,cx=W/2,cy=H/2;
+  const scale=Math.min(W,H)*0.22;
+  const pathPoints=[];
+  for(let i=0;i<=200;i++){
+    const t=-Math.PI+(i/200)*2*Math.PI;
+    const hx=16*Math.pow(Math.sin(t),3);
+    const hy=-(13*Math.cos(t)-5*Math.cos(2*t)-2*Math.cos(3*t)-Math.cos(4*t));
+    pathPoints.push({x:cx+hx*(scale/18),y:cy+hy*(scale/18),covered:false});
+  }
+  miniGameData={pathPoints,drawing:false,coverage:0,mx:0,my:0};
+  gameCanvas.onmousedown=()=>{if(miniGameActive)miniGameData.drawing=true;};
+  gameCanvas.onmouseup=()=>{miniGameData.drawing=false;};
+  gameCanvas.onmousemove=(e)=>{if(miniGameActive){miniGameData.mx=e.clientX;miniGameData.my=e.clientY;}};
+  gameCanvas.ontouchstart=(e)=>{if(miniGameActive){miniGameData.drawing=true;e.preventDefault();}};
+  gameCanvas.ontouchend=()=>{miniGameData.drawing=false;};
+  gameCanvas.ontouchmove=(e)=>{if(miniGameActive){e.preventDefault();miniGameData.mx=e.touches[0].clientX;miniGameData.my=e.touches[0].clientY;}};
+}
+
+function updateDrawHeart(dt){
+  if(!miniGameActive)return;
+  const W=gameCanvas.width,H=gameCanvas.height;
+  gameCtx.clearRect(0,0,W,H);
+  const{pathPoints,drawing,mx,my}=miniGameData;
+
+  // Guide outline (faint)
+  gameCtx.strokeStyle='rgba(225,29,72,0.1)';gameCtx.lineWidth=32;gameCtx.lineCap='round';gameCtx.lineJoin='round';
+  gameCtx.beginPath();pathPoints.forEach((p,i)=>i===0?gameCtx.moveTo(p.x,p.y):gameCtx.lineTo(p.x,p.y));gameCtx.closePath();gameCtx.stroke();
+
+  // Dotted guide
+  gameCtx.strokeStyle='rgba(225,29,72,0.25)';gameCtx.lineWidth=3;gameCtx.setLineDash([8,8]);
+  gameCtx.beginPath();pathPoints.forEach((p,i)=>i===0?gameCtx.moveTo(p.x,p.y):gameCtx.lineTo(p.x,p.y));gameCtx.closePath();gameCtx.stroke();
+  gameCtx.setLineDash([]);
+
+  // Cover points near cursor while drawing
+  if(drawing){
+    pathPoints.forEach(p=>{if(!p.covered&&Math.hypot(p.x-mx,p.y-my)<18)p.covered=true;});
+  }
+
+  // Draw covered segments
+  gameCtx.strokeStyle='#e11d48';gameCtx.lineWidth=6;gameCtx.shadowColor='#e11d48';gameCtx.shadowBlur=15;gameCtx.lineCap='round';
+  let seg=false;
+  pathPoints.forEach(p=>{
+    if(p.covered){if(!seg){gameCtx.beginPath();gameCtx.moveTo(p.x,p.y);seg=true;}else gameCtx.lineTo(p.x,p.y);}
+    else{if(seg){gameCtx.stroke();seg=false;}}
+  });
+  if(seg)gameCtx.stroke();
+  gameCtx.shadowBlur=0;
+
+  // Cursor
+  if(drawing){
+    gameCtx.fillStyle='rgba(225,29,72,0.35)';gameCtx.beginPath();gameCtx.arc(mx,my,16,0,Math.PI*2);gameCtx.fill();
+    for(let i=0;i<3;i++){gameCtx.fillStyle=`rgba(255,180,200,${.3+Math.random()*.4})`;gameCtx.beginPath();gameCtx.arc(mx+(Math.random()-.5)*30,my+(Math.random()-.5)*30,2+Math.random()*2,0,Math.PI*2);gameCtx.fill();}
+  }
+
+  // Coverage %
+  const pct=Math.floor(pathPoints.filter(p=>p.covered).length/pathPoints.length*100);
+  if(pct!==miniGameData.coverage){
+    miniGameData.coverage=pct;miniGameScore=pct;
+    document.getElementById('hud-score').textContent=pct+'%';
+    if(pct>=PLANETS[currentPlanetIndex].gameGoal){miniGameActive=false;setTimeout(()=>showReward(),600);}
+  }
+  gameCtx.fillStyle='#fb7185';gameCtx.font='18px sans-serif';gameCtx.textAlign='center';
+  gameCtx.fillText(`Coverage: ${pct}%`,W/2,50);gameCtx.textAlign='left';
+}
+
+// =============================================
+// 3. ORBIT SYNC (Earth)
+// =============================================
+function initOrbitSync(){
+  initCanvasGame();
+  const W=gameCanvas.width,H=gameCanvas.height;
+  miniGameData={
+    cx:W/2,cy:H/2,
+    radius:Math.min(W,H)*0.28,
+    angleA:0,          // Your heart (Warsaw)
+    angleB:Math.PI,    // Target heart (Seoul)
+    speedA:1.8,        // Your base speed
+    speedB:1.2,        // Seoul speed (constant)
+    boosting:false,
+    boostSpeed:4.5,
+    syncWindow:0.25,   // radians tolerance
+    cooldown:0,
+    particles:[],
+    pulseTimer:0,
+    ringPulses:[],
+    message:'',msgTimer:0
+  };
+  const boost=()=>{if(miniGameActive)miniGameData.boosting=true;};
+  const unboost=()=>{miniGameData.boosting=false;};
+  gameCanvas.onmousedown=boost;gameCanvas.onmouseup=unboost;
+  gameCanvas.ontouchstart=(e)=>{e.preventDefault();boost();};
+  gameCanvas.ontouchend=unboost;
+  document.onkeydown=(e)=>{if(e.code==='Space'){e.preventDefault();boost();}};
+  document.onkeyup=(e)=>{if(e.code==='Space')unboost();};
+}
+
+function updateOrbitSync(dt){
+  if(!miniGameActive)return;
+  const W=gameCanvas.width,H=gameCanvas.height;
+  gameCtx.clearRect(0,0,W,H);
+  const d=miniGameData;
+
+  // Update cooldown
+  if(d.cooldown>0)d.cooldown-=dt;
+
+  // Update angles
+  const currentSpeedA=d.boosting?d.boostSpeed:d.speedA;
+  d.angleA+=currentSpeedA*dt;
+  d.angleB+=d.speedB*dt;
+  // Keep in 0-2PI
+  d.angleA%=Math.PI*2;d.angleB%=Math.PI*2;
+
+  // Check sync
+  let diff=Math.abs(d.angleA-d.angleB);
+  if(diff>Math.PI)diff=Math.PI*2-diff;
+  const synced=diff<d.syncWindow;
+
+  if(synced&&d.cooldown<=0){
+    d.cooldown=0.8;
+    addScore(1);
+    d.pulseTimer=0.6;
+    d.message='💖 SYNCED!';d.msgTimer=1;
+    // Burst particles
+    const sx=d.cx+Math.cos(d.angleA)*d.radius,sy=d.cy+Math.sin(d.angleA)*d.radius;
+    for(let i=0;i<20;i++)d.particles.push({x:sx,y:sy,vx:(Math.random()-.5)*300,vy:(Math.random()-.5)*300,life:1,color:['#ff6b8a','#ffd700','#ff4d6d','#ffb3c6'][i%4]});
+    // Ring pulse
+    d.ringPulses.push({r:d.radius,alpha:1});
+    // Increase difficulty
+    d.speedB+=0.15;
+  }
+
+  // Positions
+  const ax=d.cx+Math.cos(d.angleA)*d.radius,ay=d.cy+Math.sin(d.angleA)*d.radius;
+  const bx=d.cx+Math.cos(d.angleB)*d.radius,by=d.cy+Math.sin(d.angleB)*d.radius;
+
+  // Draw orbit ring
+  gameCtx.strokeStyle='rgba(255,255,255,.08)';gameCtx.lineWidth=2;
+  gameCtx.beginPath();gameCtx.arc(d.cx,d.cy,d.radius,0,Math.PI*2);gameCtx.stroke();
+
+  // Draw faint orbit trail
+  gameCtx.strokeStyle='rgba(255,107,138,.12)';gameCtx.lineWidth=40;gameCtx.lineCap='round';
+  gameCtx.beginPath();gameCtx.arc(d.cx,d.cy,d.radius,d.angleA-0.5,d.angleA);gameCtx.stroke();
+  gameCtx.strokeStyle='rgba(100,180,255,.12)';
+  gameCtx.beginPath();gameCtx.arc(d.cx,d.cy,d.radius,d.angleB-0.5,d.angleB);gameCtx.stroke();
+
+  // Ring pulses
+  d.ringPulses=d.ringPulses.filter(p=>{
+    p.r+=150*dt;p.alpha-=dt*1.5;
+    if(p.alpha<=0)return false;
+    gameCtx.strokeStyle=`rgba(255,107,138,${p.alpha*0.5})`;gameCtx.lineWidth=3;
+    gameCtx.beginPath();gameCtx.arc(d.cx,d.cy,p.r,0,Math.PI*2);gameCtx.stroke();
+    return true;
+  });
+
+  // Pulse effect on sync
+  if(d.pulseTimer>0){
+    d.pulseTimer-=dt;
+    const pa=d.pulseTimer*2;
+    gameCtx.strokeStyle=`rgba(255,215,0,${pa})`;gameCtx.lineWidth=4;
+    gameCtx.beginPath();gameCtx.arc(d.cx,d.cy,d.radius,0,Math.PI*2);gameCtx.stroke();
+  }
+
+  // Earth in center
+  gameCtx.font=`${Math.min(W,H)*0.08}px sans-serif`;gameCtx.textAlign='center';gameCtx.textBaseline='middle';
+  gameCtx.fillText('🌍',d.cx,d.cy);
+
+  // Warsaw heart (yours — red/pink)
+  const aGlow=d.boosting?25:12;
+  gameCtx.shadowColor='#ff6b8a';gameCtx.shadowBlur=aGlow;
+  gameCtx.font='30px sans-serif';gameCtx.fillText('❤️',ax,ay);
+  gameCtx.shadowBlur=0;
+  gameCtx.fillStyle='rgba(255,255,255,.7)';gameCtx.font='bold 13px "Segoe UI",sans-serif';
+  gameCtx.fillText('🇵🇱 Poland',ax,ay+28);
+
+  // Seoul heart (target — blue)
+  gameCtx.shadowColor='#50b4ff';gameCtx.shadowBlur=12;
+  gameCtx.font='30px sans-serif';gameCtx.fillText('💙',bx,by);
+  gameCtx.shadowBlur=0;
+  gameCtx.fillStyle='rgba(255,255,255,.7)';gameCtx.font='bold 13px "Segoe UI",sans-serif';
+  gameCtx.fillText('🇰🇷 Korea',bx,by+28);
+
+  // Connection line when close
+  if(diff<d.syncWindow*3){
+    const lineAlpha=Math.max(0,1-diff/(d.syncWindow*3));
+    gameCtx.strokeStyle=`rgba(255,215,0,${lineAlpha*0.6})`;gameCtx.lineWidth=2;
+    gameCtx.setLineDash([6,6]);gameCtx.beginPath();gameCtx.moveTo(ax,ay);gameCtx.lineTo(bx,by);gameCtx.stroke();gameCtx.setLineDash([]);
+  }
+
+  // Boost indicator
+  gameCtx.fillStyle=d.boosting?'rgba(255,107,138,.9)':'rgba(255,255,255,.4)';
+  gameCtx.font='16px "Segoe UI",sans-serif';gameCtx.textAlign='center';
+  gameCtx.fillText(d.boosting?'⚡ BOOSTING':'Click / SPACE to boost!',W/2,H-30);
+
+  // Speed indicator
+  gameCtx.fillStyle='rgba(255,255,255,.3)';gameCtx.font='14px "Segoe UI",sans-serif';
+  gameCtx.fillText(`Your speed: ${currentSpeedA.toFixed(1)}x  |  Seoul: ${d.speedB.toFixed(1)}x`,W/2,H-55);
+
+  // Message
+  if(d.msgTimer>0){
+    d.msgTimer-=dt;
+    gameCtx.fillStyle=`rgba(255,215,0,${d.msgTimer})`;gameCtx.font=`bold ${Math.min(W,H)*0.05}px "Segoe UI",sans-serif`;
+    gameCtx.shadowColor='#ffd700';gameCtx.shadowBlur=15;
+    gameCtx.fillText(d.message,W/2,d.cy-d.radius-40);
+    gameCtx.shadowBlur=0;
+  }
+
+  // Particles
+  d.particles=d.particles.filter(p=>{
+    p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt*2;
+    if(p.life<=0)return false;
+    gameCtx.fillStyle=p.color;gameCtx.globalAlpha=p.life;
+    gameCtx.beginPath();gameCtx.arc(p.x,p.y,3,0,Math.PI*2);gameCtx.fill();
+    gameCtx.globalAlpha=1;
+    return true;
+  });
+
+  gameCtx.textAlign='left';
+}
+
+// =============================================
+// 4. SIMON SAYS (Mars)
+// =============================================
+function initSimonSays(){
+  document.getElementById('html-game-container').classList.remove('hidden');
+  const inner=document.getElementById('html-game-inner');
+  miniGameData={sequence:[],playerIndex:0,round:0,isShowing:false,clickable:false};
+  inner.innerHTML=`
+    <div class="simon-container">
+      <p class="simon-status" id="simon-status">Get ready...</p>
+      <div class="simon-grid">
+        <div class="simon-btn" data-idx="0" onclick="handleSimonClick(0)">🔴</div>
+        <div class="simon-btn" data-idx="1" onclick="handleSimonClick(1)">🔵</div>
+        <div class="simon-btn" data-idx="2" onclick="handleSimonClick(2)">🟢</div>
+        <div class="simon-btn" data-idx="3" onclick="handleSimonClick(3)">🟡</div>
+      </div>
+    </div>`;
+  setTimeout(()=>simonNextRound(),1000);
+}
+
+function simonNextRound(){
+  if(!miniGameActive)return;
+  const d=miniGameData;
+  d.round++;d.sequence.push(Math.floor(Math.random()*4));d.playerIndex=0;d.isShowing=true;d.clickable=false;
+  document.getElementById('simon-status').textContent=`Round ${d.round} — Watch...`;
+  document.querySelectorAll('.simon-btn').forEach(b=>b.classList.remove('clickable'));
+  let i=0;
+  const showNext=()=>{
+    if(i>0)document.querySelectorAll('.simon-btn').forEach(b=>b.classList.remove('lit'));
+    if(i>=d.sequence.length){
+      d.isShowing=false;d.clickable=true;
+      document.getElementById('simon-status').textContent=`Your turn! Repeat ${d.sequence.length} colors`;
+      document.querySelectorAll('.simon-btn').forEach(b=>b.classList.add('clickable'));return;
+    }
+    document.querySelector(`.simon-btn[data-idx="${d.sequence[i]}"]`).classList.add('lit');
+    i++;setTimeout(showNext,400);
+  };
+  setTimeout(showNext,350);
+}
+
+window.handleSimonClick=function(idx){
+  if(!miniGameActive||!miniGameData.clickable||miniGameData.isShowing)return;
+  const btn=document.querySelector(`.simon-btn[data-idx="${idx}"]`);
+  btn.classList.add('lit');setTimeout(()=>btn.classList.remove('lit'),250);
+  if(idx===miniGameData.sequence[miniGameData.playerIndex]){
+    miniGameData.playerIndex++;
+    if(miniGameData.playerIndex>=miniGameData.sequence.length){
+      miniGameData.clickable=false;
+      document.querySelectorAll('.simon-btn').forEach(b=>b.classList.remove('clickable'));
+      document.getElementById('simon-status').textContent='✅ Correct! Next round...';
+      addScore(1);
+      if(miniGameActive)setTimeout(()=>simonNextRound(),1000);
+    }
+  }else{
+    miniGameData.clickable=false;
+    document.querySelectorAll('.simon-btn').forEach(b=>b.classList.remove('clickable'));
+    document.getElementById('simon-status').textContent='❌ Wrong! Replaying sequence...';
+    loseLife();
+    if(lives<=0)return;
+    setTimeout(()=>{
+      miniGameData.playerIndex=0;miniGameData.isShowing=true;
+      document.getElementById('simon-status').textContent='Watch again...';
+      let i=0;
+      const retry=()=>{
+        if(i>0)document.querySelectorAll('.simon-btn').forEach(b=>b.classList.remove('lit'));
+        if(i>=miniGameData.sequence.length){
+          miniGameData.isShowing=false;miniGameData.clickable=true;
+          document.getElementById('simon-status').textContent=`Try again!`;
+          document.querySelectorAll('.simon-btn').forEach(b=>b.classList.add('clickable'));return;
+        }
+        document.querySelector(`.simon-btn[data-idx="${miniGameData.sequence[i]}"]`).classList.add('lit');
+        i++;setTimeout(retry,400);
+      };
+      setTimeout(retry,350);
+    },1000);
+  }
+};
+
+// =============================================
+// 5. STORM DODGE (Jupiter)
+// =============================================
+function initStormDodge(){
+  initCanvasGame();
+  miniGameData={playerY:gameCanvas.height/2,obstacles:[],spawnTimer:0,startTime:Date.now(),survived:0,invincible:0,shakeTimer:0};
+  gameCanvas.onmousemove=(e)=>{if(miniGameActive)miniGameData.playerY=e.clientY;};
+  gameCanvas.ontouchmove=(e)=>{if(miniGameActive){e.preventDefault();miniGameData.playerY=e.touches[0].clientY;}};
+}
+
+function updateStormDodge(dt){
+  const W=gameCanvas.width,H=gameCanvas.height;gameCtx.clearRect(0,0,W,H);
+  const d=miniGameData;
+  if(d.invincible>0)d.invincible-=dt;
+  if(d.shakeTimer>0)d.shakeTimer-=dt;
+  const elapsed=(Date.now()-d.startTime)/1000;
+  const ns=Math.floor(elapsed);
+  if(ns>d.survived&&miniGameScore<PLANETS[currentPlanetIndex].gameGoal){
+    d.survived=ns;miniGameScore=Math.min(ns,PLANETS[currentPlanetIndex].gameGoal);
+    document.getElementById('hud-score').textContent=miniGameScore;
+    if(miniGameScore>=PLANETS[currentPlanetIndex].gameGoal){miniGameActive=false;setTimeout(()=>showReward(),500);}
+  }
+  gameCtx.fillStyle='#fb7185';gameCtx.font='20px sans-serif';
+  gameCtx.fillText(`⏱ ${Math.min(Math.floor(elapsed),15)}s / 15s`,W/2-50,40);
+
+  d.spawnTimer+=dt;
+  if(d.spawnTimer>Math.max(.15,.5-elapsed*.025)){
+    d.spawnTimer=0;
+    d.obstacles.push({x:W+30,y:Math.random()*H,r:22+Math.random()*30,speed:350+Math.random()*300+elapsed*12});
+  }
+
+  // Rocket position
+  const rocketX=80,rocketY=d.playerY,rocketR=22;
+
+  // Draw rocket (blink when invincible)
+  const showRocket=d.invincible<=0||Math.floor(d.invincible*10)%2===0;
+  if(showRocket){
+    gameCtx.font='40px serif';gameCtx.fillText('🚀',60,rocketY+15);
+  }
+
+  // Draw storms & check collision
+  d.obstacles=d.obstacles.filter(o=>{
+    o.x-=o.speed*dt;if(o.x<-50)return false;
+    // Collision check
+    if(d.invincible<=0){
+      const dx=o.x-rocketX,dy=o.y-rocketY;
+      if(Math.sqrt(dx*dx+dy*dy)<o.r+rocketR){
+        d.invincible=1.5;
+        d.shakeTimer=0.3;
+        loseLife();
+      }
+    }
+    gameCtx.fillStyle='rgba(180,100,60,.7)';gameCtx.beginPath();gameCtx.arc(o.x,o.y,o.r,0,Math.PI*2);gameCtx.fill();
+    gameCtx.fillStyle='rgba(255,150,80,.4)';gameCtx.beginPath();gameCtx.arc(o.x-o.r*.3,o.y-o.r*.3,o.r*.6,0,Math.PI*2);gameCtx.fill();
+    return true;
+  });
+
+  // Screen shake effect
+  if(d.shakeTimer>0){
+    const s=d.shakeTimer*15;
+    gameCanvas.style.transform=`translate(${(Math.random()-.5)*s}px,${(Math.random()-.5)*s}px)`;
+  }else{
+    gameCanvas.style.transform='';
+  }
+}
+
+// =============================================
+// 6. RING RHYTHM (Saturn)
+// =============================================
+function initRingRhythm(){
+  initCanvasGame();
+  const W=gameCanvas.width,H=gameCanvas.height;
+  miniGameData={
+    angle:0,speed:3.5,
+    targetAngle:Math.PI/2,targetSize:0.32,
+    cx:W/2,cy:H/2,radius:Math.min(W,H)*.28,
+    lastHit:'',hitTimer:0,canHit:true,speedInc:0.22
+  };
+  const hit=()=>{
+    if(!miniGameActive||!miniGameData.canHit)return;
+    let a=miniGameData.angle%(Math.PI*2);if(a<0)a+=Math.PI*2;
+    let ta=miniGameData.targetAngle%(Math.PI*2);if(ta<0)ta+=Math.PI*2;
+    let diff=Math.abs(a-ta);if(diff>Math.PI)diff=Math.PI*2-diff;
+    if(diff<miniGameData.targetSize*.5){
+      miniGameData.lastHit='🎯 PERFECT!';miniGameData.hitTimer=1;miniGameData.canHit=false;
+      addScore(1);miniGameData.speed+=miniGameData.speedInc;miniGameData.targetAngle=Math.random()*Math.PI*2;
+      setTimeout(()=>{miniGameData.canHit=true;},400);
+    }else if(diff<miniGameData.targetSize){
+      miniGameData.lastHit='👍 GOOD!';miniGameData.hitTimer=1;miniGameData.canHit=false;
+      addScore(1);miniGameData.speed+=miniGameData.speedInc*.5;miniGameData.targetAngle=Math.random()*Math.PI*2;
+      setTimeout(()=>{miniGameData.canHit=true;},400);
+    }else{
+      miniGameData.lastHit='❌ Miss!';miniGameData.hitTimer=1;
+      loseLife();
+    }
+  };
+  gameCanvas.onclick=hit;
+  document.onkeydown=(e)=>{if(e.code==='Space'){e.preventDefault();hit();}};
+}
+
+function updateRingRhythm(dt){
+  if(!miniGameActive)return;
+  const W=gameCanvas.width,H=gameCanvas.height;gameCtx.clearRect(0,0,W,H);
+  const d=miniGameData;
+  d.angle+=d.speed*dt;if(d.hitTimer>0)d.hitTimer-=dt;
+
+  // Orbit circle
+  gameCtx.strokeStyle='rgba(225,29,72,.2)';gameCtx.lineWidth=4;
+  gameCtx.beginPath();gameCtx.arc(d.cx,d.cy,d.radius,0,Math.PI*2);gameCtx.stroke();
+
+  // Target zone (wide)
+  gameCtx.strokeStyle='rgba(255,215,0,.25)';gameCtx.lineWidth=42;
+  gameCtx.beginPath();gameCtx.arc(d.cx,d.cy,d.radius,d.targetAngle-d.targetSize,d.targetAngle+d.targetSize);gameCtx.stroke();
+  // Perfect zone (narrow)
+  gameCtx.strokeStyle='rgba(255,215,0,.55)';gameCtx.lineWidth=42;
+  gameCtx.beginPath();gameCtx.arc(d.cx,d.cy,d.radius,d.targetAngle-d.targetSize*.5,d.targetAngle+d.targetSize*.5);gameCtx.stroke();
+
+  // Target icon
+  const tmx=d.cx+Math.cos(d.targetAngle)*d.radius,tmy=d.cy+Math.sin(d.targetAngle)*d.radius;
+  gameCtx.font='24px serif';gameCtx.fillText('💍',tmx-12,tmy+8);
+
+  // Orbiting dot + trail
+  const dx=d.cx+Math.cos(d.angle)*d.radius,dy=d.cy+Math.sin(d.angle)*d.radius;
+  for(let i=1;i<=6;i++){
+    const ta=d.angle-i*.07,tx=d.cx+Math.cos(ta)*d.radius,ty=d.cy+Math.sin(ta)*d.radius;
+    gameCtx.globalAlpha=.3-i*.04;gameCtx.fillStyle='#e11d48';
+    gameCtx.beginPath();gameCtx.arc(tx,ty,12-i,0,Math.PI*2);gameCtx.fill();
+  }
+  gameCtx.globalAlpha=1;
+  gameCtx.fillStyle='#e11d48';gameCtx.shadowColor='#e11d48';gameCtx.shadowBlur=25;
+  gameCtx.beginPath();gameCtx.arc(dx,dy,12,0,Math.PI*2);gameCtx.fill();gameCtx.shadowBlur=0;
+
+  // Center
+  gameCtx.font='50px serif';gameCtx.fillText('🪐',d.cx-25,d.cy+18);
+
+  // Feedback
+  if(d.hitTimer>0){
+    gameCtx.fillStyle=d.lastHit.includes('PERFECT')?'#ffd700':d.lastHit.includes('GOOD')?'#e11d48':'#ff5555';
+    gameCtx.font='bold 28px sans-serif';gameCtx.textAlign='center';
+    gameCtx.fillText(d.lastHit,d.cx,d.cy+d.radius+60);gameCtx.textAlign='left';
+  }
+  gameCtx.fillStyle='rgba(251,113,133,.45)';gameCtx.font='16px sans-serif';gameCtx.textAlign='center';
+  gameCtx.fillText('Click / SPACE when the dot is in the golden zone!',d.cx,40);gameCtx.textAlign='left';
+}
+
+// =============================================
+// 7. MEMORY MATCH (Uranus)
+// =============================================
+function initMemoryMatch(){
+  document.getElementById('html-game-container').classList.remove('hidden');
+  const inner=document.getElementById('html-game-inner');
+  const cards=[...MEMORY_SYMBOLS,...MEMORY_SYMBOLS];
+  for(let i=cards.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[cards[i],cards[j]]=[cards[j],cards[i]];}
+  miniGameData={flippedCards:[],locked:false};
+  let h='<div class="memory-grid">';
+  cards.forEach((s,i)=>{h+=`<div class="memory-card" data-index="${i}" data-symbol="${s}" onclick="handleMemoryClick(this)">❓</div>`;});
+  h+='</div>';inner.innerHTML=h;
+}
+
+window.handleMemoryClick=function(card){
+  if(!miniGameActive||miniGameData.locked||card.classList.contains('flipped')||card.classList.contains('matched'))return;
+  card.classList.add('flipped');card.textContent=card.dataset.symbol;
+  miniGameData.flippedCards.push(card);
+  if(miniGameData.flippedCards.length===2){
+    miniGameData.locked=true;const[a,b]=miniGameData.flippedCards;
+    if(a.dataset.symbol===b.dataset.symbol){
+      a.classList.add('matched');b.classList.add('matched');miniGameData.flippedCards=[];miniGameData.locked=false;addScore();
+    }else{
+      setTimeout(()=>{a.classList.remove('flipped');b.classList.remove('flipped');a.textContent='❓';b.textContent='❓';miniGameData.flippedCards=[];miniGameData.locked=false;},500);
+    }
+  }
+};
+
+// =============================================
+// 8. ALIEN FIGHT (Neptune)
+// =============================================
+const ALIEN_TYPES = [
+  {emoji:'👾',hp:1,speed:70,size:36,points:1},
+  {emoji:'👽',hp:1,speed:90,size:32,points:1},
+  {emoji:'🛸',hp:2,speed:55,size:44,points:1},
+  {emoji:'🐙',hp:1,speed:100,size:30,points:1}
+];
+
+function initAlienFight(){
+  initCanvasGame();
+  const W=gameCanvas.width,H=gameCanvas.height;
+  miniGameData={
+    aliens:[],spawnTimer:0,crosshair:{x:W/2,y:H/2},
+    explosions:[],waveTimer:0,difficulty:1
+  };
+  alienFightPaused=false;videoPlayCount=0;
+  gameCanvas.style.cursor='crosshair';
+  gameCanvas.onmousemove=(e)=>{
+    if(miniGameActive){
+      miniGameData.crosshair.x=e.clientX;
+      miniGameData.crosshair.y=e.clientY;
+    }
+  };
+  gameCanvas.ontouchmove=(e)=>{
+    if(miniGameActive){e.preventDefault();
+      miniGameData.crosshair.x=e.touches[0].clientX;
+      miniGameData.crosshair.y=e.touches[0].clientY;
+    }
+  };
+  gameCanvas.onclick=(e)=>{
+    if(!miniGameActive||alienFightPaused)return;
+    const mx=e.clientX,my=e.clientY;
+    for(let i=miniGameData.aliens.length-1;i>=0;i--){
+      const a=miniGameData.aliens[i];
+      if(Math.hypot(a.x-mx,a.y-my)<a.size){
+        a.hp--;
+        if(a.hp<=0){
+          miniGameData.explosions.push({x:a.x,y:a.y,t:0,emoji:'💥'});
+          miniGameData.aliens.splice(i,1);
+          onAlienKill();
+        }else{
+          a.flashTimer=0.2;
+        }
+        return;
+      }
+    }
+  };
+}
+
+function onAlienKill(){
+  miniGameScore++;
+  document.getElementById('hud-score').textContent=miniGameScore;
+  alienFightPaused=true;
+  const vidIdx=videoPlayCount%2;
+  videoPlayCount++;
+  playFightVideo(FIGHT_VIDEOS[vidIdx],FIGHT_LABELS[vidIdx],vidIdx===1,()=>{
+    alienFightPaused=false;
+    if(miniGameScore>=PLANETS[currentPlanetIndex].gameGoal){
+      miniGameActive=false;setTimeout(()=>showReward(),400);
+    }
+  });
+}
+
+function playFightVideo(src,label,leftSide,onDone){
+  const overlay=document.getElementById('video-overlay');
+  const vid=document.getElementById('fight-video');
+  const lbl=document.getElementById('vid-label');
+  overlay.classList.remove('active','left-side');
+  if(leftSide)overlay.classList.add('left-side');
+  vid.src=src;vid.currentTime=0;lbl.textContent=label;
+  vid.muted=false;
+  setTimeout(()=>overlay.classList.add('active'),50);
+  vid.play().catch(()=>{});
+  const finish=()=>{
+    vid.removeEventListener('ended',finish);
+    clearTimeout(timer);
+    overlay.classList.remove('active');
+    setTimeout(()=>{vid.pause();vid.src='';if(onDone)onDone();},500);
+  };
+  vid.addEventListener('ended',finish);
+  const timer=setTimeout(finish,3000);
+}
+
+function spawnAlien(){
+  const W=gameCanvas.width,H=gameCanvas.height;
+  const type=ALIEN_TYPES[Math.floor(Math.random()*ALIEN_TYPES.length)];
+  const side=Math.floor(Math.random()*4);
+  let x,y;
+  if(side===0){x=Math.random()*W;y=-50;}
+  else if(side===1){x=W+50;y=Math.random()*H;}
+  else if(side===2){x=Math.random()*W;y=H+50;}
+  else{x=-50;y=Math.random()*H;}
+  const tx=W*.3+Math.random()*W*.4, ty=H*.3+Math.random()*H*.4;
+  const ang=Math.atan2(ty-y,tx-x);
+  miniGameData.aliens.push({
+    x,y,vx:Math.cos(ang)*type.speed*(0.8+miniGameData.difficulty*0.15),
+    vy:Math.sin(ang)*type.speed*(0.8+miniGameData.difficulty*0.15),
+    emoji:type.emoji,hp:type.hp,size:type.size,points:type.points,
+    flashTimer:0,wobble:Math.random()*Math.PI*2
+  });
+}
+
+function updateAlienFight(dt){
+  if(!miniGameActive)return;
+  const W=gameCanvas.width,H=gameCanvas.height;
+  gameCtx.clearRect(0,0,W,H);
+  gameCtx.fillStyle='rgba(0,0,40,.15)';gameCtx.fillRect(0,0,W,H);
+
+  if(!alienFightPaused){
+    miniGameData.spawnTimer+=dt;
+    miniGameData.waveTimer+=dt;
+    miniGameData.difficulty=1+miniGameData.waveTimer*0.15;
+    if(miniGameData.spawnTimer>Math.max(0.35,1.2-miniGameData.difficulty*0.1)){
+      miniGameData.spawnTimer=0;spawnAlien();
+    }
+    miniGameData.aliens.forEach(a=>{
+      a.x+=a.vx*dt;a.y+=a.vy*dt;
+      a.wobble+=dt*3;
+      if(a.flashTimer>0)a.flashTimer-=dt;
+    });
+    miniGameData.aliens=miniGameData.aliens.filter(a=>a.x>-100&&a.x<W+100&&a.y>-100&&a.y<H+100);
+  }
+
+  // Draw aliens
+  miniGameData.aliens.forEach(a=>{
+    const wobbleX=Math.sin(a.wobble)*4;
+    if(a.flashTimer>0){gameCtx.shadowColor='#ff0000';gameCtx.shadowBlur=25;}
+    gameCtx.font=`${a.size}px serif`;
+    gameCtx.fillText(a.emoji,a.x-a.size/2+wobbleX,a.y+a.size/3);
+    gameCtx.shadowBlur=0;
+    if(a.hp>1){
+      gameCtx.fillStyle='rgba(255,0,0,.6)';gameCtx.fillRect(a.x-15,a.y-a.size/2-8,30,4);
+      gameCtx.fillStyle='rgba(0,255,100,.7)';gameCtx.fillRect(a.x-15,a.y-a.size/2-8,30*(a.hp/2),4);
+    }
+  });
+
+  // Explosions
+  miniGameData.explosions=miniGameData.explosions.filter(e=>{
+    e.t+=dt;if(e.t>0.6)return false;
+    const s=1+e.t*3;gameCtx.globalAlpha=1-e.t/0.6;
+    gameCtx.font=`${40*s}px serif`;gameCtx.fillText(e.emoji,e.x-20*s,e.y+15*s);
+    gameCtx.globalAlpha=1;return true;
+  });
+
+  // Crosshair
+  const cx=miniGameData.crosshair.x,cy=miniGameData.crosshair.y;
+  gameCtx.strokeStyle='rgba(225,29,72,.8)';gameCtx.lineWidth=2;
+  gameCtx.beginPath();gameCtx.arc(cx,cy,18,0,Math.PI*2);gameCtx.stroke();
+  gameCtx.beginPath();gameCtx.moveTo(cx-25,cy);gameCtx.lineTo(cx-10,cy);gameCtx.stroke();
+  gameCtx.beginPath();gameCtx.moveTo(cx+10,cy);gameCtx.lineTo(cx+25,cy);gameCtx.stroke();
+  gameCtx.beginPath();gameCtx.moveTo(cx,cy-25);gameCtx.lineTo(cx,cy-10);gameCtx.stroke();
+  gameCtx.beginPath();gameCtx.moveTo(cx,cy+10);gameCtx.lineTo(cx,cy+25);gameCtx.stroke();
+  gameCtx.fillStyle='#e11d48';gameCtx.beginPath();gameCtx.arc(cx,cy,3,0,Math.PI*2);gameCtx.fill();
+
+  // Paused overlay
+  if(alienFightPaused){
+    gameCtx.fillStyle='rgba(0,0,0,.4)';gameCtx.fillRect(0,0,W,H);
+    gameCtx.fillStyle='#fb7185';gameCtx.font='bold 24px sans-serif';gameCtx.textAlign='center';
+    gameCtx.fillText('📹 Playing clip...',W/2,H/2);gameCtx.textAlign='left';
+  }
+
+  gameCtx.fillStyle='rgba(251,113,133,.5)';gameCtx.font='15px sans-serif';gameCtx.textAlign='center';
+  gameCtx.fillText('🎯 Click on aliens to destroy them!',W/2,H-30);gameCtx.textAlign='left';
+}
+
+// ========== ANIMATION LOOP ==========
+const clock=new THREE.Clock();
+function animate(){
+  requestAnimationFrame(animate);
+  const delta=Math.min(clock.getDelta(),.1);
+  if(currentPlanetMesh)currentPlanetMesh.rotation.y+=.15*delta;
+  if(saturnRing)saturnRing.rotation.z+=.05*delta;
+  if(andromedaParticles)andromedaParticles.rotation.y+=.03*delta;
+  if(rocketModel&&rocketModel.visible&&!warpActive)rocketModel.position.y=Math.sin(Date.now()/1000)*.3;
+  if(warpActive)updateWarp(delta);
+  if(!warpActive)stars.rotation.y+=.005*delta;
+  if(rocketMixer)rocketMixer.update(delta);
+  if(miniGameActive){
+    switch(miniGameType){
+      case 'solar-pong':updateSolarPong(delta);break;
+      case 'draw-heart':updateDrawHeart(delta);break;
+      case 'orbit-sync':updateOrbitSync(delta);break;
+      case 'storm-dodge':updateStormDodge(delta);break;
+      case 'ring-rhythm':updateRingRhythm(delta);break;
+      case 'alien-fight':updateAlienFight(delta);break;
+    }
+  }
+  renderer.render(scene,camera);
+}
+animate();
+
+window.addEventListener('resize',()=>{
+  camera.aspect=window.innerWidth/window.innerHeight;camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth,window.innerHeight);
+  if(gameCanvas.classList.contains('active')){gameCanvas.width=window.innerWidth;gameCanvas.height=window.innerHeight;}
+});
+
+window.startGame=startGame;window.onDialogNext=onDialogNext;window.startMiniGame=startMiniGame;window.nextPlanet=nextPlanet;
+
+// Warp steering controls
+window.addEventListener('mousemove',(e)=>{
+  if(!warpActive)return;
+  warpSteer.targetX=((e.clientX/window.innerWidth)-0.5)*2;
+  warpSteer.targetY=-((e.clientY/window.innerHeight)-0.5)*2;
+});
+window.addEventListener('touchmove',(e)=>{
+  if(!warpActive)return;
+  const t=e.touches[0];
+  warpSteer.targetX=((t.clientX/window.innerWidth)-0.5)*2;
+  warpSteer.targetY=-((t.clientY/window.innerHeight)-0.5)*2;
+},{passive:true});
+</script>
+</body>
+</html>
